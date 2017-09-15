@@ -9,7 +9,7 @@ struct RequestWriter {
     : is_verbose{ is_verbose } {
     request.set(boost::beast::http::field::host, host_name);
     request.set(boost::beast::http::field::user_agent, user_agent);
-    request.version = 11;
+    request.version(11);
   }
 
   template <typename Stream, typename Query>
