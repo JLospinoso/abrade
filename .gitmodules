@@ -1,3 +1,0 @@
-[submodule "beast"]
-	path = beast
-	url = git@github.com:boostorg/beast.git
