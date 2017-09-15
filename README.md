@@ -36,7 +36,7 @@ docker pull quay.io/jlospinoso/abrade:v0.1.0
 
 # Documentation
 
-A blog post on http://lospi.net is forthcoming.
+Check out the [blog post](https://jlospinoso.github.io/cpp/developing/software/2017/09/15/abrade-web-scraper.html) at [http://lospi.net](http://lospi.net).
 
 ```
 > abrade -h
