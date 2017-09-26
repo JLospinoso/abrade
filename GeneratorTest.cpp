@@ -1,5 +1,5 @@
 #include "catch.hpp"
-#include "UriGenerator.h"
+#include "Generator.h"
 
 namespace {
   UriGenerator make(const std::string& pattern) {

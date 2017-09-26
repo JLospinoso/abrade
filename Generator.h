@@ -1,13 +1,20 @@
 #pragma once
+#include "Options.h"
 #include <string>
 #include <utility>
-#include <boost/optional.hpp>
 #include <boost/optional/optional_io.hpp>
 #include <vector>
 #include <memory>
 
-struct UriGeneratorException : std::runtime_error {
-  UriGeneratorException(const std::string& msg);
+struct Generator {
+  virtual ~Generator() = default;
+  virtual boost::optional<std::string> next() = 0;
+};
+
+struct StdinGenerator : Generator {
+  boost::optional<std::string> next() override;
+private:
+  bool is_complete{};
 };
 
 struct Pattern {
@@ -78,9 +85,9 @@ private:
   const Range& target;
 };
 
-struct UriGenerator {
+struct UriGenerator : Generator {
   UriGenerator(const std::string& pattern_in, bool lead_zero, bool is_exact);
-  boost::optional<std::string> next();
+  boost::optional<std::string> next() override;
   double get_log_range_size() const;
   size_t get_range_size() const;
 private:

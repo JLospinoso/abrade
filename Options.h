@@ -4,6 +4,7 @@
 
 struct Options {
   Options(int argc, const char** argv);
+  bool is_stdin() const noexcept;
   bool is_help() const noexcept;
   bool is_tls() const noexcept;
   bool is_verify() const noexcept;
@@ -32,7 +33,7 @@ struct Options {
 private:
   size_t initial_coroutines, minimum_coroutines, maximum_coroutines, sample_size, sample_interval;
   bool help, tls, verify, contents, verbose, optimize, print_found, tor, sensitive_teardown, 
-        leading_zeros, test, telescoping;
+        leading_zeros, test, telescoping, from_stdin;
   std::string host, pattern, output_path, error_path, help_str, proxy, user_agent;
 };
 

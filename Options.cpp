@@ -19,6 +19,7 @@ Options::Options(int argc, const char** argv)
     ("out", value<string>(&output_path)->default_value(""), "output path. dir if contents enabled. (default: HOSTNAME)")
     ("err", value<string>(&error_path)->default_value(""), "error path (file). (default: HOSTNAME-err.log)")
     ("proxy", value<string>(&proxy)->default_value(""), "SOCKS5 proxy address:port. (default: none)")
+    ("stdin,d", bool_switch(&from_stdin), "read from stdin (default: no)")
     ("tls,t", bool_switch(&tls), "use tls/ssl (default: no)")
     ("sensitive,s", bool_switch(&sensitive_teardown), "complain about rude TCP teardowns (default: no)")
     ("tor,o", bool_switch(&tor), "use local proxy at 127.0.0.1:9050 (default: no)")
@@ -52,8 +53,8 @@ Options::Options(int argc, const char** argv)
   ss << description;
   help_str = ss.str();
   if (help) return;
-  if (host.size() == 0) throw OptionsException{"you must supply a host.", *this};
-  if (pattern.size() == 0) throw OptionsException{"you must supply a pattern.", *this };
+  if (host.size() == 0) throw OptionsException{ "you must supply a host.", *this };
+  if (!from_stdin && pattern.size() == 0) throw OptionsException{ "you must supply a pattern.", *this };
   if (initial_coroutines < 1) throw OptionsException{"init must be positive", *this };
   if (minimum_coroutines < 1) throw OptionsException{"min must be positive", *this };
   if (maximum_coroutines < 1) throw OptionsException{"max must be positive", *this };
@@ -71,9 +72,15 @@ Options::Options(int argc, const char** argv)
 
 string Options::get_pretty_print() const noexcept {
   stringstream ss;
+  if (from_stdin) {
+    ss <<
+      "[ ] Reading input from stdin\n";
+  } else {
+    ss <<
+      "[ ] Host: " << get_host() << "\n" <<
+      "[ ] Pattern: " << get_pattern() << "\n";
+  }
   ss <<
-    "[ ] Host: " << get_host() << "\n" <<
-    "[ ] Pattern: " << get_pattern() << "\n" <<
     "[ ] Include leading zeros: " << (is_leading_zeros() ? "Yes" : "No") << "\n" <<
     "[ ] Telescope pattern: " << (is_telescoping() ? "Yes" : "No") << "\n" <<
     "[ ] TLS/SSL: " << (is_tls() ? "Yes" : "No") << "\n" <<
@@ -95,6 +102,8 @@ string Options::get_pretty_print() const noexcept {
   }
   return ss.str();
 }
+
+bool Options::is_stdin() const noexcept { return from_stdin; }
 
 bool Options::is_leading_zeros() const noexcept { return leading_zeros; }
 

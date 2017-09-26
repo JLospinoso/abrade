@@ -1,8 +1,9 @@
 #include <boost/lexical_cast.hpp>
-#include "UriGenerator.h"
+#include "Generator.h"
 #include <cmath>
 #include <numeric>
 #include <stdexcept>
+#include <iostream>
 
 using namespace std;
 
@@ -38,7 +39,7 @@ namespace {
     case 'b':
       return &alphanumeric;
     default:
-      throw UriGeneratorException(string{"Unknown implicit range element: "} + element);
+      throw runtime_error{ string{"Unknown implicit range element: "} +element };
     }
   }
 
@@ -47,12 +48,12 @@ namespace {
     pattern.type = Pattern::Type::Implicit;
     pattern.start = input.find('{', start);
     if (pattern.start == string::npos) {
-      if (input.find('}', start) != string::npos) throw UriGeneratorException("Unmatched closing brace found (}).");
+      if (input.find('}', start) != string::npos) throw runtime_error{ "Unmatched closing brace found (})." };
       return boost::optional<Pattern>{};
     }
     pattern.end = input.find('}', pattern.start + 1);
     if (pattern.end == string::npos)
-      throw UriGeneratorException{"Unmatched open brace at " + to_string(pattern.start)};
+      throw runtime_error{ "Unmatched open brace at " + to_string(pattern.start) };
     if (pattern.end == pattern.start + 1) {
       pattern.type = Pattern::Type::Continuation;
       return pattern;
@@ -67,10 +68,7 @@ namespace {
         target.push_back(element);
       }
     }
-
-    return
-      boost::optional<Pattern>
-      {move(pattern)};
+    return boost::optional<Pattern>{ move(pattern) };
   }
 
 }
@@ -134,7 +132,7 @@ string ImplicitRange::get_current() const {
 }
 
 ExplicitRange::ExplicitRange(size_t start, size_t end) : start{start}, end{end} {
-  if (end < start) throw UriGeneratorException{"End of pattern cannot be less than start."};
+  if (end < start) throw runtime_error{ "End of pattern cannot be less than start." };
   current = start;
 }
 
@@ -148,8 +146,6 @@ bool ExplicitRange::increment_return_carry() { return current++ == end; }
 
 string ExplicitRange::get_current() const { return to_string(current); }
 
-UriGeneratorException::UriGeneratorException(const string& msg) : runtime_error{msg} {}
-
 UriGenerator::UriGenerator(const string& input, bool lead_zero, bool is_telescoping) : is_complete{false} {
   size_t index{};
   while (auto pattern = parse_next_pattern(input, index)) {
@@ -159,9 +155,9 @@ UriGenerator::UriGenerator(const string& input, bool lead_zero, bool is_telescop
     case Pattern::Type::Explicit:
       size_t start, end;
       try { start = boost::lexical_cast<size_t>(pattern->tokens.first); }
-      catch (boost::bad_lexical_cast) { throw UriGeneratorException{"Unable to parse pattern " + pattern->tokens.first}; }
+      catch (boost::bad_lexical_cast) { throw runtime_error{ "Unable to parse pattern " + pattern->tokens.first }; }
       try { end = boost::lexical_cast<size_t>(pattern->tokens.second); }
-      catch (boost::bad_lexical_cast) { throw UriGeneratorException{"Unable to parse pattern " + pattern->tokens.second}; }
+      catch (boost::bad_lexical_cast) { throw runtime_error{ "Unable to parse pattern " + pattern->tokens.second }; }
       ranges.emplace_back(make_unique<ExplicitRange>(start, end));
       break;
     case Pattern::Type::Implicit:
@@ -174,20 +170,27 @@ UriGenerator::UriGenerator(const string& input, bool lead_zero, bool is_telescop
       break;
 
     case Pattern::Type::Continuation:
-      if (ranges.size() == 0) throw UriGeneratorException{"Cannot start with a continuation pattern {}."};
+      if (ranges.size() == 0) throw runtime_error{ "Cannot start with a continuation pattern {}." };
       ranges.emplace_back(make_unique<ContinuationRange>(*ranges.back()));
       break;
     default:
-      throw UriGeneratorException{"Unknown range type encountered."};
+      throw runtime_error{ "Unknown range type encountered." };
     }
     index = pattern->end + 1;
   }
   literal_tokens.emplace_back(input.substr(index));
 }
 
+boost::optional<string> StdinGenerator::next() {
+  if (is_complete) return boost::optional<string>{};
+  string next_line;
+  if (getline(cin, next_line)) return boost::optional<string>{ next_line };
+  is_complete = true;
+  return boost::optional<string>{};
+}
+
 boost::optional<string> UriGenerator::next() {
   if (is_complete) return boost::optional<string>{};
-
   string result;
   for (size_t i{}; i < ranges.size(); i++) {
     result.append(literal_tokens[i]);

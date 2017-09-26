@@ -45,6 +45,16 @@ TEST_CASE("Options") {
     REQUIRE(options.get_help().size() > 0);
   }
 
+  SECTION("Parses stdin correctly with") {
+    auto cmdline = std::string{ "myhost.com --stdin" };
+
+    SECTION("no options") {
+      auto options = opt(cmdline);
+      REQUIRE(options.is_stdin());
+      REQUIRE(options.get_host() == "myhost.com");
+    }
+  }
+
   SECTION("Parses host and pattern correctly with") {
     auto host_name = "lospi.net";
     auto pattern = "?asdf[1-10]";

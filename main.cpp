@@ -1,9 +1,9 @@
-#include "Options.h"
-#include "UriGenerator.h"
-#include "Scraper.h"
 #include <iostream>
-#include "Query.h"
 #include <utility>
+#include "Options.h"
+#include "Generator.h"
+#include "Scraper.h"
+#include "Query.h"
 #include "Connection.h"
 #include "Action.h"
 #include "Writer.h"
@@ -12,16 +12,26 @@
 using namespace std;
 
 namespace {
-  template <typename Query, typename Connection, typename RequestWriter>
-  void run_scraper(UriGenerator& generator, Query&& query, Connection&& connection,
+  template <typename Generator, typename Query, typename Connection, typename RequestWriter>
+  void run_scraper(Generator&& generator, Query&& query, Connection&& connection,
                    Controller& controller, RequestWriter& writer, boost::asio::io_service& ios,
                    const Options& options) {
-    Scraper<Query, Connection, RequestWriter> scraper{
+    Scraper<Generator, Query, Connection, RequestWriter> scraper{
       std::forward<Query>(query), std::forward<Connection>(connection), std::forward<RequestWriter>(writer), controller,
       ios,
       options.is_verbose(), options.get_error_path()
     };
-    scraper.run(generator);
+    scraper.run(std::forward<Generator>(generator));
+  }
+
+  Generator& make_generator(const Options& options) {
+    if (options.is_stdin()) {
+      static StdinGenerator stdin_generator{};
+      return stdin_generator;
+    } else {
+      static UriGenerator uri_generator{ options.get_pattern(), options.is_leading_zeros(), options.is_telescoping() };
+      return uri_generator;
+    }
   }
 
   GetQuery make_get(const Options& options) {
@@ -34,6 +44,11 @@ namespace {
     return HeadQuery{
       HeadAction{ options.get_output_path(), options.is_verbose() }, options.is_print_found(), options.is_verbose()
     };
+  }
+
+  template <typename Generator>
+  Generator make_generator(const Options& options) {
+    
   }
 }
 
@@ -55,13 +70,17 @@ int main(int argc, const char** argv) {
     auto& controller = options.is_optimizer()
                          ? static_cast<Controller&>(adaptive_controller)
                          : static_cast<Controller&>(fixed_controller);
-    UriGenerator generator{ options.get_pattern(), options.is_leading_zeros(), options.is_telescoping() };
-    try {
-      auto cardinality = generator.get_range_size();
-      cout << "[ ] URL generation set cardinality is " << cardinality << endl;
-    } catch (const overflow_error&) {
-      cout << "[!] URL generation set log cardinality is " << generator.get_log_range_size() << endl;      
+    if (!options.is_stdin()) {
+      UriGenerator uri_generator{ options.get_pattern(), options.is_leading_zeros(), options.is_telescoping() };
+      try {
+        auto cardinality = uri_generator.get_range_size();
+        cout << "[ ] URL generation set cardinality is " << cardinality << endl;
+      }
+      catch (const overflow_error&) {
+        cout << "[!] URL generation set log cardinality is " << uri_generator.get_log_range_size() << endl;
+      }
     }
+    auto& generator = make_generator(options);
     if (options.is_test()) {
       cout << "[ ] TEST: Writing URIs to console" << endl;
       const auto prefix = options.is_tls() ? "https://" : "http://";

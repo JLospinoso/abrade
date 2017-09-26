@@ -8,10 +8,9 @@
 #include <string>
 #include <ostream>
 #include <fstream>
-#include "UriGenerator.h"
 #include "Controller.h"
 
-template <typename Query, typename Connection, typename RequestWriter>
+template <typename Generator, typename Query, typename Connection, typename RequestWriter>
 struct Scraper {
   Scraper(Query&& query, Connection&& connection, RequestWriter&& writer, Controller& controller,
           boost::asio::io_service& ios, bool is_verbose, const std::string& error_path)
@@ -24,7 +23,7 @@ struct Scraper {
       writer{std::forward<RequestWriter>(writer)},
       active_coroutines{} { }
 
-  void run(UriGenerator& generator) {
+  void run(Generator& generator) {
     spawn_coroutine(generator);
     ios.run();
   }
@@ -37,7 +36,7 @@ private:
     unsigned short& value;
   };
 
-  void spawn_coroutine(UriGenerator& generator) {
+  void spawn_coroutine(Generator& generator) {
     spawn(ios, [this, &generator](const boost::asio::yield_context& yield)
         {
           LifetimeCounter ctr{active_coroutines};
