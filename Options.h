@@ -25,6 +25,7 @@ struct Options {
   const std::string& get_output_path() const noexcept;
   const std::string& get_error_path() const noexcept;
   const std::string& get_user_agent() const noexcept;
+  const std::string& get_screen() const noexcept;
   size_t get_initial_coroutines() const noexcept;
   size_t get_minimum_coroutines() const noexcept;
   size_t get_maximum_coroutines() const noexcept;
@@ -34,7 +35,7 @@ private:
   size_t initial_coroutines, minimum_coroutines, maximum_coroutines, sample_size, sample_interval;
   bool help, tls, verify, contents, verbose, optimize, print_found, tor, sensitive_teardown, 
         leading_zeros, test, telescoping, from_stdin;
-  std::string host, pattern, output_path, error_path, help_str, proxy, user_agent;
+  std::string host, pattern, output_path, error_path, help_str, proxy, user_agent, screen;
 };
 
 struct OptionsException : std::runtime_error {

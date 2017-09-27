@@ -27,8 +27,8 @@ private:
 };
 
 struct GetAction {
-  GetAction(const std::string& path_dir, bool is_verbose)
-    : re{"[^a-zA-Z0-9.-]"}, is_verbose{is_verbose}, path_dir {path_dir} {
+  GetAction(const std::string& path_dir, const std::string& screen, bool is_verbose)
+    : re{ "[^a-zA-Z0-9.-]" }, is_verbose{ is_verbose }, path_dir{ path_dir }, screen{ screen } {
     boost::filesystem::path boost_path(path_dir);
     boost::system::error_code ec;
     boost::filesystem::create_directories(path_dir, ec);
@@ -53,14 +53,25 @@ private:
     auto path{path_dir};
     path.append("/");
     path.append(regex_replace(target, re, "_"));
-
-    std::ofstream file;
-    file.exceptions(std::ios_base::failbit | std::ios_base::badbit);
-    file.open(path, std::ofstream::out);
-    file << contents << std::endl;
+    if (screen.empty()) {
+      std::ofstream file;
+      file.exceptions(std::ios_base::failbit | std::ios_base::badbit);
+      file.open(path, std::ofstream::out);
+      file << contents << std::endl;
+    } else {
+      std::stringstream ss;
+      ss << contents << std::endl;
+      const auto contents_str = ss.str();
+      const auto contains_screen = contents_str.find(screen) != std::string::npos;
+      if (contains_screen) return;
+      std::ofstream file;
+      file.exceptions(std::ios_base::failbit | std::ios_base::badbit);
+      file.open(path, std::ofstream::out);
+      file << contents_str << std::endl;
+    }
   }
 
   const boost::regex re;
   const bool is_verbose;
-  const std::string path_dir;
+  const std::string path_dir, screen;
 };

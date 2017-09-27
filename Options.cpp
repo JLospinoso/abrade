@@ -19,6 +19,7 @@ Options::Options(int argc, const char** argv)
     ("out", value<string>(&output_path)->default_value(""), "output path. dir if contents enabled. (default: HOSTNAME)")
     ("err", value<string>(&error_path)->default_value(""), "error path (file). (default: HOSTNAME-err.log)")
     ("proxy", value<string>(&proxy)->default_value(""), "SOCKS5 proxy address:port. (default: none)")
+    ("screen", value<string>(&screen)->default_value(""), "omits 200-level response if contents contains screen (default: none)")
     ("stdin,d", bool_switch(&from_stdin), "read from stdin (default: no)")
     ("tls,t", bool_switch(&tls), "use tls/ssl (default: no)")
     ("sensitive,s", bool_switch(&sensitive_teardown), "complain about rude TCP teardowns (default: no)")
@@ -88,6 +89,7 @@ string Options::get_pretty_print() const noexcept {
     "[ ] User Agent: " << get_user_agent() << "\n" <<
     "[ ] Proxy: " << (is_proxy() ? get_proxy() : "No") << "\n" <<
     "[ ] Contents: " << (is_contents() ? "Yes" : "No") << "\n" <<
+    "[ ] Screen: " << (get_screen().empty() ? "None" : get_screen()) << "\n" <<
     "[ ] Output: " << get_output_path() << "\n" <<
     "[ ] Error Output: " << get_error_path() << "\n" <<
     "[ ] Verbose: " << (is_verbose() ? "Yes" : "No") << "\n" <<
@@ -142,6 +144,8 @@ const string& Options::get_error_path() const noexcept { return error_path; }
 const string& Options::get_host() const noexcept { return host; }
 
 const string& Options::get_user_agent() const noexcept { return user_agent; }
+
+const string& Options::get_screen() const noexcept { return screen; }
 
 size_t Options::get_initial_coroutines() const noexcept { return initial_coroutines; }
 

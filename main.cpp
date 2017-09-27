@@ -36,7 +36,7 @@ namespace {
 
   GetQuery make_get(const Options& options) {
     return GetQuery{
-      GetAction{ options.get_output_path(), options.is_verbose() }, options.is_print_found(), options.is_verbose()
+      GetAction{ options.get_output_path(), options.get_screen(), options.is_verbose() }, options.is_print_found(), options.is_verbose()
     };
   }
 
@@ -44,11 +44,6 @@ namespace {
     return HeadQuery{
       HeadAction{ options.get_output_path(), options.is_verbose() }, options.is_print_found(), options.is_verbose()
     };
-  }
-
-  template <typename Generator>
-  Generator make_generator(const Options& options) {
-    
   }
 }
 
@@ -73,7 +68,7 @@ int main(int argc, const char** argv) {
     if (!options.is_stdin()) {
       UriGenerator uri_generator{ options.get_pattern(), options.is_leading_zeros(), options.is_telescoping() };
       try {
-        auto cardinality = uri_generator.get_range_size();
+        const auto cardinality = uri_generator.get_range_size();
         cout << "[ ] URL generation set cardinality is " << cardinality << endl;
       }
       catch (const overflow_error&) {
