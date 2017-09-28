@@ -4,9 +4,8 @@ RUN apt update && apt upgrade -y
 RUN mkdir abrade
 WORKDIR abrade
 
-COPY *.h *.hpp *.cpp CMakeLists.txt ./
+COPY *.h *.hpp *.cpp CMakeLists.txt beast ./
 RUN mkdir build
-RUN git clone https://github.com/boostorg/beast.git
 WORKDIR build
 RUN cmake ..
 RUN make
