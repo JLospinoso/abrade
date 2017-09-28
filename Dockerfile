@@ -4,7 +4,8 @@ RUN apt update && apt upgrade -y
 RUN mkdir abrade
 WORKDIR abrade
 
-COPY *.h *.hpp *.cpp CMakeLists.txt beast ./
+COPY *.h *.hpp *.cpp CMakeLists.txt ./
+COPY beast ./beast
 RUN mkdir build
 WORKDIR build
 RUN cmake ..
