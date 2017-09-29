@@ -8,6 +8,7 @@
 
 _Abrade is a coroutine-based web scraper suitable for querying the existence (a HEAD request) or the contents (a GET request) of a web resource with a sequential, numerical pattern._
 
+Check out the [blog post](https://jlospinoso.github.io/cpp/developing/software/2017/09/15/abrade-web-scraper.html) at [http://lospi.net](http://lospi.net) for usage and examples.
 
 ```
 > abrade -h
@@ -93,8 +94,6 @@ docker pull quay.io/jlospinoso/abrade:v0.2.0
 ```
 
 # v0.1
-
-Check out the [blog post](https://jlospinoso.github.io/cpp/developing/software/2017/09/15/abrade-web-scraper.html) at [http://lospi.net](http://lospi.net).
 
 ## [Linux ELF](https://s3.amazonaws.com/net.lospi.abrade/0.1.0/abrade)
 
