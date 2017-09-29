@@ -80,6 +80,17 @@ get written to disk during a `--content` scrape.
 * This is an Authenticode signed binary (Issued to: Joshua Alfred Lospinoso)
 * https://s3.amazonaws.com/net.lospi.abrade/0.2.0/abrade.exe
 
+## [Docker Image](https://quay.io/repository/jlospinoso/abrade)
+
+```
+docker pull jlospinoso/abrade:v0.2.0
+```
+
+or
+
+```
+docker pull quay.io/jlospinoso/abrade:v0.2.0
+```
 
 # v0.1
 
