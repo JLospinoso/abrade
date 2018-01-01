@@ -18,7 +18,7 @@ set(Boost_USE_STATIC_LIBS        ON)
 set(Boost_USE_MULTITHREADED      ON)
 set(Boost_USE_STATIC_RUNTIME    OFF)
 add_definitions(${Boost_LIB_DIAGNOSTIC_DEFINITIONS})
-find_package(Boost COMPONENTS beast system date_time regex coroutine context program_options filesystem)
+find_package(Boost COMPONENTS system date_time regex coroutine context program_options filesystem thread beast REQUIRED)
 
 if(Boost_FOUND)
   message("[+] Found Boost. Include: " ${Boost_INCLUDE_DIRS}
