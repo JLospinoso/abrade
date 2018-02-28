@@ -36,19 +36,18 @@ struct PlaintextConnection {
     boost::system::error_code ec;
     boost::asio::ip::tcp::resolver resolver{ios};
     lookup_result = resolver.resolve({host_name, "http"}, ec);
-    if (ec) throw AbradareException{"resolve host", ec};
+    if (ec) throw AbradeException{"resolve host", ec};
   }
 
   auto connect(
     boost::asio::ip::tcp::socket& sock,
-    const std::string& target,
     const boost::asio::yield_context& yield) {
     auto result = std::make_unique<Connection<boost::asio::ip::tcp::socket&>>(
       [st = sensitive_teardown](auto& stream) {
       boost::system::error_code shutdown_error;
       stream.shutdown(boost::asio::ip::tcp::socket::shutdown_both, shutdown_error);
       if (st && shutdown_error != boost::asio::error::eof)
-        throw AbradareException{
+        throw AbradeException{
           "tcp shutdown", shutdown_error
         };
     },
@@ -56,7 +55,7 @@ struct PlaintextConnection {
 
     boost::system::error_code ec;
     async_connect(result->get(), lookup_result, yield[ec]);
-    if (ec) throw AbradareException{"tcp connect", ec};
+    if (ec) throw AbradeException{"tcp connect", ec};
 
     return std::move(result);
   }
@@ -71,34 +70,33 @@ struct TlsConnection {
     : sensitive_teardown{sensitive_teardown}, context{boost::asio::ssl::context::sslv23} {
     boost::system::error_code ec;
     context.set_default_verify_paths(ec);
-    if (ec) throw AbradareException{"ssl default verify path", ec};
+    if (ec) throw AbradeException{"ssl default verify path", ec};
     const auto verify_mode = is_verify
                                ? boost::asio::ssl::verify_peer | boost::asio::ssl::verify_fail_if_no_peer_cert
                                : boost::asio::ssl::verify_none;
     context.set_verify_mode(verify_mode);
     boost::asio::ip::tcp::resolver resolver{ios};
     lookup_result = resolver.resolve({host_name, "https"}, ec);
-    if (sensitive_teardown && ec) throw AbradareException{"resolve host", ec};
+    if (sensitive_teardown && ec) throw AbradeException{"resolve host", ec};
   }
 
   auto connect(
     boost::asio::ip::tcp::socket& sock,
-    const std::string& target,
     const boost::asio::yield_context& yield) {
     auto result = std::make_unique<Connection<boost::asio::ssl::stream<boost::asio::ip::tcp::socket&>>>(
       [&yield, st=sensitive_teardown](auto& stream) {
       boost::system::error_code ec;
       stream.async_shutdown(yield[ec]);
-      if (st && ec && ec != boost::asio::error::eof) throw AbradareException{"shutdown error", ec};
+      if (st && ec && ec != boost::asio::error::eof) throw AbradeException{"shutdown error", ec};
     },
       sock, context);
 
     boost::system::error_code ec;
     async_connect(sock, lookup_result, yield[ec]);
-    if (ec) throw AbradareException{"ssl connect", ec};
+    if (ec) throw AbradeException{"ssl connect", ec};
 
     result->get().async_handshake(boost::asio::ssl::stream_base::client, yield[ec]);
-    if (ec) throw AbradareException{"ssl handshake", ec};
+    if (ec) throw AbradeException{"ssl handshake", ec};
 
     return std::move(result);
   }
@@ -115,17 +113,16 @@ struct ProxiedConnection {
     : sensitive_teardown{sensitive_teardown}, host_name{host_name} {
     boost::system::error_code ec;
     const auto colon_pos = proxy.find(':');
-    if (std::string::npos == colon_pos) throw AbradareException("Proxy does not contain colon (:).");
+    if (std::string::npos == colon_pos) throw AbradeException("Proxy does not contain colon (:).");
     boost::asio::ip::tcp::resolver resolver{ios};
     const auto proxy_host = proxy.substr(0, colon_pos);
     const auto proxy_port = proxy.substr(colon_pos + 1, proxy.size());
     proxy_lookup = resolver.resolve({proxy_host, proxy_port}, ec);
-    if (ec) throw AbradareException{"resolve proxy", ec};
+    if (ec) throw AbradeException{"resolve proxy", ec};
   }
 
   auto connect(
     boost::asio::ip::tcp::socket& sock,
-    const std::string& target,
     const boost::asio::yield_context& yield
   ) {
     auto result = std::make_unique<Connection<boost::asio::ip::tcp::socket&>>(
@@ -133,7 +130,7 @@ struct ProxiedConnection {
       boost::system::error_code shutdown_error;
       stream.shutdown(boost::asio::ip::tcp::socket::shutdown_both, shutdown_error);
       if (st && shutdown_error && shutdown_error != boost::asio::error::eof)
-        throw AbradareException{
+        throw AbradeException{
           "tcp shutdown", shutdown_error
         };
     },
@@ -141,27 +138,27 @@ struct ProxiedConnection {
 
     boost::system::error_code ec;
     async_connect(result->get(), proxy_lookup, yield[ec]);
-    if (ec) throw AbradareException{"proxy connect ", ec};
+    if (ec) throw AbradeException{"proxy connect ", ec};
 
     static const std::array<unsigned char, 3> auth_request{5, 1, 0};
     async_write(result->get(), boost::asio::buffer(auth_request.data(), auth_request.size()), yield[ec]);
-    if (ec) throw AbradareException{"proxy write auth", ec};
+    if (ec) throw AbradeException{"proxy write auth", ec};
 
     std::array<char, 2> auth_response;
     async_read(result->get(), boost::asio::buffer(auth_response.data(), auth_response.size()), yield[ec]);
-    if (ec) throw AbradareException{"proxy read auth", ec};
+    if (ec) throw AbradeException{"proxy read auth", ec};
 
     if (auth_response[0] != 5) {
       std::string err_msg{"SOCKS version "};
       err_msg.append(std::to_string(auth_response[0]));
       err_msg.append(" not supported.");
-      throw AbradareException{move(err_msg)};
+      throw AbradeException{move(err_msg)};
     }
     if (auth_response[1] != 0) {
       std::string err_msg{"SOCKS authentication "};
       err_msg.append(std::to_string(auth_response[1]));
       err_msg.append(" not supported.");
-      throw AbradareException{move(err_msg)};
+      throw AbradeException{move(err_msg)};
     }
 
     std::vector<unsigned char> connect_request{
@@ -175,16 +172,16 @@ struct ProxiedConnection {
     connect_request.emplace_back(0); // high port byte
     connect_request.emplace_back(80); // low port byte
     async_write(result->get(), boost::asio::buffer(connect_request.data(), connect_request.size()), yield[ec]);
-    if (ec) throw AbradareException{"proxy connection", ec};
+    if (ec) throw AbradeException{"proxy connection", ec};
 
     std::array<char, 10> connect_response;
     async_read(result->get(), boost::asio::buffer(connect_response.data(), connect_response.size()), yield[ec]);
-    if (ec) throw AbradareException{"proxy read", ec};
+    if (ec) throw AbradeException{"proxy read", ec};
 
     if (auth_response[1] != 0) {
       std::string err_msg{"SOCKS connection failed:"};
       err_msg.append(std::to_string(auth_response[1]));
-      throw AbradareException{move(err_msg)};
+      throw AbradeException{move(err_msg)};
     }
 
     return std::move(result);
@@ -205,56 +202,55 @@ struct ProxiedTlsConnection {
       } {
     boost::system::error_code ec;
     context.set_default_verify_paths(ec);
-    if (ec) throw AbradareException{"default CA path set", ec};
+    if (ec) throw AbradeException{"default CA path set", ec};
     const auto verify_mode = is_verify
                                ? boost::asio::ssl::verify_peer | boost::asio::ssl::verify_fail_if_no_peer_cert
                                : boost::asio::ssl::verify_none;
     context.set_verify_mode(verify_mode);
     const auto colon_pos = proxy.find(':');
-    if (std::string::npos == colon_pos) throw AbradareException("Proxy does not contain colon (:).");
+    if (std::string::npos == colon_pos) throw AbradeException("Proxy does not contain colon (:).");
     boost::asio::ip::tcp::resolver resolver{ios};
     const auto proxy_host = proxy.substr(0, colon_pos);
     const auto proxy_port = proxy.substr(colon_pos + 1, proxy.size());
     proxy_lookup = resolver.resolve({proxy_host, proxy_port}, ec);
-    if (ec) throw AbradareException{"resolve proxy", ec};
+    if (ec) throw AbradeException{"resolve proxy", ec};
   }
 
   auto connect(
     boost::asio::ip::tcp::socket& sock,
-    const std::string& target,
     const boost::asio::yield_context& yield
   ) {
     auto result = std::make_unique<Connection<boost::asio::ssl::stream<boost::asio::ip::tcp::socket&>>>(
       [&yield, st=sensitive_teardown](auto& stream) {
       boost::system::error_code ec;
       stream.async_shutdown(yield[ec]);
-      if (st && ec && ec != boost::asio::error::eof) throw AbradareException{"proxied ssl shutdown", ec};
+      if (st && ec && ec != boost::asio::error::eof) throw AbradeException{"proxied ssl shutdown", ec};
     },
       sock, context);
 
     boost::system::error_code ec;
     async_connect(sock, proxy_lookup, yield[ec]);
-    if (ec) throw AbradareException{"proxy connect ", ec};
+    if (ec) throw AbradeException{"proxy connect ", ec};
 
     static const std::array<unsigned char, 3> auth_request{5, 1, 0};
     async_write(sock, boost::asio::buffer(auth_request.data(), auth_request.size()), yield[ec]);
-    if (ec) throw AbradareException{"proxy write auth", ec};
+    if (ec) throw AbradeException{"proxy write auth", ec};
 
     std::array<char, 2> auth_response;
     async_read(sock, boost::asio::buffer(auth_response.data(), auth_response.size()), yield[ec]);
-    if (ec) throw AbradareException{"proxy read auth", ec};
+    if (ec) throw AbradeException{"proxy read auth", ec};
 
     if (auth_response[0] != 5) {
       std::string err_msg{"SOCKS version "};
       err_msg.append(std::to_string(auth_response[0]));
       err_msg.append(" not supported.");
-      throw AbradareException{move(err_msg)};
+      throw AbradeException{move(err_msg)};
     }
     if (auth_response[1] != 0) {
       std::string err_msg{"SOCKS authentication "};
       err_msg.append(std::to_string(auth_response[1]));
       err_msg.append(" not supported.");
-      throw AbradareException{move(err_msg)};
+      throw AbradeException{move(err_msg)};
     }
 
     std::vector<unsigned char> connect_request{
@@ -268,20 +264,20 @@ struct ProxiedTlsConnection {
     connect_request.emplace_back(0x01); // high port byte
     connect_request.emplace_back(0xBB); // low port byte
     async_write(sock, boost::asio::buffer(connect_request.data(), connect_request.size()), yield[ec]);
-    if (ec) throw AbradareException{"proxy connection", ec};
+    if (ec) throw AbradeException{"proxy connection", ec};
 
     std::array<char, 10> connect_response;
     async_read(sock, boost::asio::buffer(connect_response.data(), connect_response.size()), yield[ec]);
-    if (ec) throw AbradareException{"proxy read", ec};
+    if (ec) throw AbradeException{"proxy read", ec};
 
     if (auth_response[1] != 0) {
       std::string err_msg{"SOCKS connection failed:"};
       err_msg.append(std::to_string(auth_response[1]));
-      throw AbradareException{move(err_msg)};
+      throw AbradeException{move(err_msg)};
     }
 
     result->get().async_handshake(boost::asio::ssl::stream_base::client, yield[ec]);
-    if (ec) throw AbradareException{"proxied ssl handshake", ec};
+    if (ec) throw AbradeException{"proxied ssl handshake", ec};
 
     return std::move(result);
   }

@@ -20,7 +20,7 @@ TEST_CASE("UriGenerator") {
   }
 
   SECTION("with 1 explicit range") {
-    boost::optional<std::string> next_uri;
+    std::optional<std::string> next_uri;
 
     SECTION("throws when") {
       SECTION("no closing bracket in explicit range") { REQUIRE_THROWS(make( "/my/desired/{1209:3298/route" )); }
@@ -108,7 +108,7 @@ TEST_CASE("UriGenerator") {
   }
 
   SECTION("with 1 implicit range") {
-    boost::optional<std::string> next_uri;
+    std::optional<std::string> next_uri;
 
     SECTION("throws when") {
       SECTION("no closing bracket") { REQUIRE_THROWS(make( "/my/desired/{b/route" )); }
@@ -928,7 +928,7 @@ TEST_CASE("UriGenerator") {
   }
   
   SECTION("with 2 explicit ranges") {
-    boost::optional<std::string> next_uri;
+    std::optional<std::string> next_uri;
 
     SECTION("throws when") {
       SECTION("no closing bracket in explicit range") { REQUIRE_THROWS(make( "/my/{0:1}/desired/{1209:3298/route" )); }
@@ -1041,7 +1041,7 @@ TEST_CASE("UriGenerator") {
   }
 
   SECTION("with 2 implicit ranges") {
-    boost::optional<std::string> next_uri;
+    std::optional<std::string> next_uri;
 
     SECTION("throws when") {
       SECTION("no closing bracket") { REQUIRE_THROWS(make( "/my/{N}/desired/{b/route" )); }
@@ -1232,7 +1232,7 @@ TEST_CASE("UriGenerator") {
   }
 
   SECTION("with 3 consecutive explicit ranges") {
-    boost::optional<std::string> next_uri;
+    std::optional<std::string> next_uri;
 
     SECTION("throws when") {
       SECTION("no closing bracket in explicit range") { REQUIRE_THROWS(make( "{0:1}{1209:3298{2:3}" )); }

@@ -43,13 +43,13 @@ namespace {
     }
   }
 
-  boost::optional<Pattern> parse_next_pattern(const string& input, size_t start) {
+  std::optional<Pattern> parse_next_pattern(const string& input, size_t start) {
     Pattern pattern;
     pattern.type = Pattern::Type::Implicit;
     pattern.start = input.find('{', start);
     if (pattern.start == string::npos) {
       if (input.find('}', start) != string::npos) throw runtime_error{ "Unmatched closing brace found (})." };
-      return boost::optional<Pattern>{};
+      return nullopt;
     }
     pattern.end = input.find('}', pattern.start + 1);
     if (pattern.end == string::npos)
@@ -68,7 +68,7 @@ namespace {
         target.push_back(element);
       }
     }
-    return boost::optional<Pattern>{ move(pattern) };
+    return move(pattern);
   }
 
 }
@@ -181,16 +181,16 @@ UriGenerator::UriGenerator(const string& input, bool lead_zero, bool is_telescop
   literal_tokens.emplace_back(input.substr(index));
 }
 
-boost::optional<string> StdinGenerator::next() {
-  if (is_complete) return boost::optional<string>{};
+std::optional<string> StdinGenerator::next() {
+  if (is_complete) return nullopt;
   string next_line;
-  if (getline(cin, next_line)) return boost::optional<string>{ next_line };
+  if (getline(cin, next_line)) return next_line;
   is_complete = true;
-  return boost::optional<string>{};
+  return nullopt;
 }
 
-boost::optional<string> UriGenerator::next() {
-  if (is_complete) return boost::optional<string>{};
+std::optional<string> UriGenerator::next() {
+  if (is_complete) return nullopt;
   string result;
   for (size_t i{}; i < ranges.size(); i++) {
     result.append(literal_tokens[i]);
@@ -198,11 +198,11 @@ boost::optional<string> UriGenerator::next() {
   }
   result.append(literal_tokens.back());
   increment_ranges();
-  return boost::optional<string>{result};
+  return result;
 }
 
 void UriGenerator::increment_ranges() {
-  if (ranges.size() == 0) {
+  if (ranges.empty()) {
     is_complete = true;
     return;
   }
@@ -231,8 +231,8 @@ double UriGenerator::get_log_range_size() const {
 
 TelescopingRange::TelescopingRange(const string& pattern_template, bool lead_zero) : index{} {
   for (size_t index{}; index < pattern_template.size(); index++) {
-    auto start = pattern_template.size() - index - 1;
-    auto length = index + 1;
+    const auto start = pattern_template.size() - index - 1;
+    const auto length = index + 1;
     ranges.emplace_back(ImplicitRange{pattern_template.substr(start, length), lead_zero});
   }
 }

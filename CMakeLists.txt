@@ -24,15 +24,13 @@ if(Boost_FOUND)
   message("[+] Found Boost. Include: " ${Boost_INCLUDE_DIRS}
           " Libraries: " ${Boost_LIBRARIES})
   include_directories(${Boost_INCLUDE_DIRS})
-  # Until BEAST is in BOOST
-  include_directories(beast/include)
 endif()
 
 # For ASIO
 add_definitions(-D_WIN32_WINNT=0x0501)
 
 # Artifacts
-add_library(abradelib Options.cpp Generator.h Generator.cpp Action.h Options.h Query.h Scraper.h Connection.h Exception.h Exception.cpp Writer.h Controller.h Controller.cpp)
+add_library(abradelib Options.cpp Candidate.h Generator.h Generator.cpp Action.h Options.h Query.h Scraper.h Connection.h Exception.h Exception.cpp Writer.h Controller.h Controller.cpp)
 target_compile_definitions(abradelib PUBLIC BOOST_COROUTINES_NO_DEPRECATION_WARNING=1)
 
 add_executable(abrade main.cpp)

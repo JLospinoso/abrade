@@ -16,9 +16,9 @@ struct HeadAction {
     file.open(path, std::ofstream::out | std::ofstream::app);
   }
 
-  void process(int status_code, const std::string& target) {
-    if (status_code >= 200 && status_code < 300) { file << target << std::endl; }
-    if (is_verbose) std::cout << target << ": " << status_code << std::endl;
+  void process(int status_code, const std::string_view& candidate) {
+    if (status_code >= 200 && status_code < 300) { file << candidate << std::endl; }
+    if (is_verbose) std::cout << candidate << ": " << status_code << std::endl;
   }
 
 private:
@@ -32,27 +32,27 @@ struct GetAction {
     boost::filesystem::path boost_path(path_dir);
     boost::system::error_code ec;
     boost::filesystem::create_directories(path_dir, ec);
-    if (ec) throw AbradareException{"open path", ec};
+    if (ec) throw AbradeException{"open path", ec};
   }
 
   template <typename Stream>
-  void process(int status_code, Stream contents, const std::string& target) {
+  void process(int status_code, Stream contents, const std::string_view& candidate) {
     if (is_verbose) {
       std::stringstream ss;
       ss << contents;
       auto contents_string = ss.str();
-      std::cout << "[ ] Response from " << target << ":\n" << contents_string << std::endl;
-      write_out(contents_string, target);
+      std::cout << "[ ] Response from " << candidate << ":\n" << contents_string << std::endl;
+      write_out(contents_string, candidate);
     }
-    else if (status_code >= 200 && status_code < 300) { write_out(contents, target); }
+    else if (status_code >= 200 && status_code < 300) { write_out(contents, candidate); }
   }
 
 private:
   template <typename Stream>
-  void write_out(Stream& contents, const std::string& target) {
+  void write_out(Stream& contents, const std::string_view& candidate) {
     auto path{path_dir};
     path.append("/");
-    path.append(regex_replace(target, re, "_"));
+    path.append(regex_replace(std::string{ candidate.begin(), candidate.end() }, re, "_"));
     if (screen.empty()) {
       std::ofstream file;
       file.exceptions(std::ios_base::failbit | std::ios_base::badbit);
