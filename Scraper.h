@@ -9,6 +9,7 @@
 #include <ostream>
 #include <fstream>
 #include "Controller.h"
+#include "Candidate.h"
 
 template <typename Generator, typename Query, typename Connection, typename RequestWriter>
 struct Scraper {
@@ -40,9 +41,15 @@ private:
     spawn(ios, [this, &generator](const boost::asio::yield_context& yield)
         {
           LifetimeCounter ctr{active_coroutines};
-          while (const auto uri = generator.next()) {
+          while (const auto uri = generator.next()) { 
             if (active_coroutines < controller.recommended_coroutines()) { spawn_coroutine(generator); }
-            try { coroutine(yield, *uri); }
+            // TODO: Need to generate URI, headers, and contents. How to integrate patterns?
+            Candidate candidate{
+              *uri,
+              {}, // Headers
+              {}  // Contents
+            };
+            try { coroutine(yield, candidate); }
             catch (const std::exception& e) {
               std::ofstream file;
               file.exceptions(std::ios_base::failbit | std::ios_base::badbit);
@@ -56,11 +63,12 @@ private:
         });
   }
 
-  void coroutine(const boost::asio::yield_context& yield, const std::string& target) {
+  void coroutine(const boost::asio::yield_context& yield, const Candidate& candidate) {
     boost::asio::ip::tcp::socket sock{ios};
-    auto instance = connection.connect(sock, target, yield);
-    writer.make_request(instance->get(), query, target, yield);
-    query.execute(instance->get(), target, yield);
+    auto instance = connection.connect(sock, yield);
+    //TODO: Program against candidate instead of just URI
+    writer.make_request(instance->get(), query, candidate, yield);
+    query.execute(instance->get(), candidate.description(), yield);
   }
 
   bool is_verbose;

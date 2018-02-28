@@ -41,7 +41,6 @@ struct PlaintextConnection {
 
   auto connect(
     boost::asio::ip::tcp::socket& sock,
-    const std::string& target,
     const boost::asio::yield_context& yield) {
     auto result = std::make_unique<Connection<boost::asio::ip::tcp::socket&>>(
       [st = sensitive_teardown](auto& stream) {
@@ -83,7 +82,6 @@ struct TlsConnection {
 
   auto connect(
     boost::asio::ip::tcp::socket& sock,
-    const std::string& target,
     const boost::asio::yield_context& yield) {
     auto result = std::make_unique<Connection<boost::asio::ssl::stream<boost::asio::ip::tcp::socket&>>>(
       [&yield, st=sensitive_teardown](auto& stream) {
@@ -125,7 +123,6 @@ struct ProxiedConnection {
 
   auto connect(
     boost::asio::ip::tcp::socket& sock,
-    const std::string& target,
     const boost::asio::yield_context& yield
   ) {
     auto result = std::make_unique<Connection<boost::asio::ip::tcp::socket&>>(
@@ -221,7 +218,6 @@ struct ProxiedTlsConnection {
 
   auto connect(
     boost::asio::ip::tcp::socket& sock,
-    const std::string& target,
     const boost::asio::yield_context& yield
   ) {
     auto result = std::make_unique<Connection<boost::asio::ssl::stream<boost::asio::ip::tcp::socket&>>>(

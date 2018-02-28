@@ -3,9 +3,9 @@
 #include <string>
 #include <utility>
 #include <optional>
-//#include <boost/optional/optional_io.hpp>
 #include <vector>
 #include <memory>
+#include "Candidate.h"
 
 struct Generator {
   virtual ~Generator() = default;

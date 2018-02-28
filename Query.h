@@ -7,6 +7,7 @@
 #include <system_error>
 #include "Action.h"
 #include "Exception.h"
+#include "Candidate.h"
 
 //TODO: PostQuery
 
@@ -15,19 +16,19 @@ struct GetQuery {
                                                                action{std::move(action)} {}
 
   template <typename Stream>
-  void execute(Stream& stream, const std::string& target, const boost::asio::yield_context& yield) {
+  void execute(Stream& stream, const std::string_view& description, const boost::asio::yield_context& yield) {
     boost::system::error_code ec;
     boost::beast::flat_buffer buffer;
     boost::beast::http::response<boost::beast::http::dynamic_body> response;
     boost::beast::http::async_read(stream, buffer, response, yield[ec]);
     if (ec) throw AbradeException{"get query", ec};
-    action.process(response.result_int(), response, target);
+    action.process(response.result_int(), response, description);
 
     const auto status_code = response.result_int();
     if (print_found && (status_code >= 200 && status_code < 300)) {
-      std::cout << "[+] Status of " << target << ": " << status_code << std::endl;
+      std::cout << "[+] Status of " << description << ": " << status_code << std::endl;
     }
-    else if (verbose) { std::cout << "[-] Status of " << target << ": " << status_code << std::endl; }
+    else if (verbose) { std::cout << "[-] Status of " << description << ": " << status_code << std::endl; }
   }
 
   template <typename Request>
@@ -43,20 +44,20 @@ struct HeadQuery {
                                                                  action {std::move(action)} { }
 
   template <typename Stream>
-  void execute(Stream& stream, const std::string& target, const boost::asio::yield_context& yield) {
+  void execute(Stream& stream, const std::string_view& description, const boost::asio::yield_context& yield) {
     boost::system::error_code ec;
     boost::beast::flat_buffer buffer;
     boost::beast::http::response_parser<boost::beast::http::empty_body> parser;
     boost::beast::http::async_read_header(stream, buffer, parser, yield[ec]);
     if (ec) throw AbradeException{"head query", ec};
     const auto& response = parser.release();
-    action.process(response.result_int(), target);
+    action.process(response.result_int(), description);
 
     const auto status_code = response.result_int();
     if (print_found && (status_code >= 200 && status_code < 300)) {
-      std::cout << "[+] Status of " << target << ": " << status_code << std::endl;
+      std::cout << "[+] Status of " << description << ": " << status_code << std::endl;
     }
-    else if (verbose) { std::cout << "[-] Status of " << target << ": " << status_code << std::endl; }
+    else if (verbose) { std::cout << "[-] Status of " << description << ": " << status_code << std::endl; }
   }
 
   template <typename Request>
