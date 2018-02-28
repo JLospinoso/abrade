@@ -3,7 +3,7 @@
 #include <string>
 #include <boost/system/system_error.hpp>
 
-struct AbradareException : std::runtime_error {
-  AbradareException(const std::string& msg);
-  AbradareException(const std::string& msg, const boost::system::error_code& ec);
+struct AbradeException : std::runtime_error {
+  AbradeException(const std::string& msg);
+  AbradeException(const std::string& msg, const boost::system::error_code& ec);
 };

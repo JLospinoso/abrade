@@ -2,23 +2,24 @@
 #include "Options.h"
 #include <string>
 #include <utility>
-#include <boost/optional/optional_io.hpp>
+#include <optional>
+//#include <boost/optional/optional_io.hpp>
 #include <vector>
 #include <memory>
 
 struct Generator {
   virtual ~Generator() = default;
-  virtual boost::optional<std::string> next() = 0;
+  virtual std::optional<std::string> next() = 0;
 };
 
 struct StdinGenerator : Generator {
-  boost::optional<std::string> next() override;
+  std::optional<std::string> next() override;
 private:
   bool is_complete{};
 };
 
 struct Pattern {
-  size_t start, end, delimiter;
+  size_t start, end;
   enum class Type {
     Implicit,
     Explicit,
@@ -87,7 +88,7 @@ private:
 
 struct UriGenerator : Generator {
   UriGenerator(const std::string& pattern_in, bool lead_zero, bool is_exact);
-  boost::optional<std::string> next() override;
+  std::optional<std::string> next() override;
   double get_log_range_size() const;
   size_t get_range_size() const;
 private:

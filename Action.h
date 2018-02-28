@@ -32,7 +32,7 @@ struct GetAction {
     boost::filesystem::path boost_path(path_dir);
     boost::system::error_code ec;
     boost::filesystem::create_directories(path_dir, ec);
-    if (ec) throw AbradareException{"open path", ec};
+    if (ec) throw AbradeException{"open path", ec};
   }
 
   template <typename Stream>
