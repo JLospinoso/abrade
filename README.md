@@ -117,3 +117,26 @@ or
 ```
 docker pull quay.io/jlospinoso/abrade:v0.1.0
 ```
+
+# Building Abrade
+
+1. Abrade uses [cmake](https://cmake.org), so you'll need to install it.
+2. Clone abrade.
+3. Navigate to the checked out directory.
+4. Make a `build` subdirectory.
+5. Navigate to the build directory.
+6. Invoke cmake.
+7. Use `make` (*nix) or Visual Studio (Windows) to build the project.
+
+For example, on *nix:
+
+```
+git clone git@github.com:JLospinoso/abrade.git
+cd abrade
+mkdir build
+cd build
+cmake ..
+make
+```
+
+On Windows, you'll need to open the `abrade.sln` file and build.
