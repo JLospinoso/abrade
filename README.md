@@ -8,6 +8,7 @@
 
 _Abrade is a coroutine-based web scraper suitable for querying the existence (a HEAD request) or the contents (a GET request) of a web resource with a sequential, numerical pattern._
 
+Check out the [blog post](https://jlospinoso.github.io/cpp/developing/software/2017/09/15/abrade-web-scraper.html) at [http://lospi.net](http://lospi.net) for usage and examples.
 
 ```
 > abrade -h
@@ -94,8 +95,6 @@ docker pull quay.io/jlospinoso/abrade:v0.2.0
 
 # v0.1
 
-Check out the [blog post](https://jlospinoso.github.io/cpp/developing/software/2017/09/15/abrade-web-scraper.html) at [http://lospi.net](http://lospi.net).
-
 ## [Linux ELF](https://s3.amazonaws.com/net.lospi.abrade/0.1.0/abrade)
 
 * 2,243 KB. SHA-256=1b8adf0fe8b7db252c4f84398bf5980f0a0c57a7592cd529ac6558b57407f238
@@ -118,3 +117,26 @@ or
 ```
 docker pull quay.io/jlospinoso/abrade:v0.1.0
 ```
+
+# Building Abrade
+
+1. Abrade uses [cmake](https://cmake.org), so you'll need to install it.
+2. Clone abrade.
+3. Navigate to the checked out directory.
+4. Make a `build` subdirectory.
+5. Navigate to the build directory.
+6. Invoke cmake.
+7. Use `make` (*nix) or Visual Studio (Windows) to build the project.
+
+For example, on *nix:
+
+```
+git clone git@github.com:JLospinoso/abrade.git
+cd abrade
+mkdir build
+cd build
+cmake ..
+make
+```
+
+On Windows, you'll need to open the `abrade.sln` file and build.
