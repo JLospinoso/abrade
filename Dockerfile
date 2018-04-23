@@ -1,4 +1,4 @@
-FROM quay.io/jlospinoso/cppbuild:v1.4.0
+FROM quay.io/jlospinoso/cppbuild:v1.5.0
 RUN apt update && apt upgrade -y
 
 RUN mkdir abrade
