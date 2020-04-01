@@ -32,7 +32,7 @@ jobs:
     - name: Build
       run: |
         mkdir build && cd build
-        conan install .. --build missing -g cmake
+        python3 -m conan install .. --build missing -g cmake
         cmake -DCMAKE_BUILD_TYPE=Release ..
         make
     
