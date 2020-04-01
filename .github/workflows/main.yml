@@ -43,3 +43,7 @@ jobs:
         ./build/bin/abrade_test
         ./build/bin/abrade --help
       
+    - uses: actions/upload-artifact@v1
+      with:
+        name: abrade
+        path: ./build/bin/abrade

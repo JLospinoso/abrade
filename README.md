@@ -1,6 +1,6 @@
 ![Abrade](img/Abrade.png)
 
-[![CircleCI](https://circleci.com/gh/JLospinoso/abrade/tree/master.svg?style=svg&circle-token=d7a7e8f797c16751aa21cdac2a085348878f410a)](https://circleci.com/gh/jlospinoso/abrade/tree/master)
+![CI](https://github.com/JLospinoso/abrade/workflows/CI/badge.svg)
 
 [![Docker Automated build](https://img.shields.io/docker/automated/jlospinoso/abrade.svg)](https://hub.docker.com/r/jlospinoso/abrade/)
 
