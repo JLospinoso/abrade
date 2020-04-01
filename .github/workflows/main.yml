@@ -25,8 +25,8 @@ jobs:
     # Runs a set of commands using the runners shell
     - name: Install build dependencies
       run: |
-        apt-get install cmake gcc-9
-        python3 -m pip install --upgrade conan conan-package-tools
+        sudo apt-get install cmake gcc-9
+        python3 -m pip install --upgrade --user conan conan-package-tools
         
     # Runs a set of commands using the runners shell
     - name: Build
