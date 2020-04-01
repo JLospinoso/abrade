@@ -2,10 +2,6 @@
 
 ![CI](https://github.com/JLospinoso/abrade/workflows/CI/badge.svg)
 
-[![Docker Automated build](https://img.shields.io/docker/automated/jlospinoso/abrade.svg)](https://hub.docker.com/r/jlospinoso/abrade/)
-
-[![Docker Repository on Quay](https://quay.io/repository/jlospinoso/abrade/status "Docker Repository on Quay")](https://quay.io/repository/jlospinoso/abrade)
-
 _Abrade is a coroutine-based web scraper suitable for querying the existence (a HEAD request) or the contents (a GET request) of a web resource with a sequential, numerical pattern._
 
 Check out the [blog post](https://jlospinoso.github.io/cpp/developing/software/2017/09/15/abrade-web-scraper.html) at [http://lospi.net](http://lospi.net) for usage and examples.
