@@ -33,7 +33,7 @@ jobs:
     - name: Build
       run: |
         mkdir build && cd build
-        conan install .. --build missing -g cmake
+        CC=gcc-9 CXX=g++-9 conan install .. --build missing -g cmake
         CC=gcc-9 CXX=g++-9 cmake -DCMAKE_BUILD_TYPE=Release ..
         make
     
