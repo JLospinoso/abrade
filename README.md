@@ -96,7 +96,7 @@ Abrade uses CMake presets and vcpkg manifest mode. Install:
 
 - CMake 3.24 or newer
 - Ninja
-- A C++17 compiler
+- A C++23 compiler
 - vcpkg
 
 Set `VCPKG_ROOT` to your vcpkg checkout before configuring:

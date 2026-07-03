@@ -32,7 +32,7 @@ find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
 
 function(abrade_target_defaults target)
-  target_compile_features(${target} PUBLIC cxx_std_17)
+  target_compile_features(${target} PUBLIC cxx_std_23)
   set_target_properties(${target} PROPERTIES
     CXX_EXTENSIONS OFF
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
