@@ -56,14 +56,18 @@ add_library(abradelib STATIC
   Connection.h
   Controller.cpp
   Controller.h
+  Endpoint.h
   Exception.cpp
   Exception.h
   Generator.cpp
   Generator.h
+  HttpStatus.h
+  NetworkTimeout.h
   Options.cpp
   Options.h
   Query.h
   Scraper.h
+  ScraperRuntime.h
   Writer.h
 )
 abrade_target_defaults(abradelib)
@@ -97,10 +101,31 @@ if(BUILD_TESTING)
   include(Catch)
 
   add_executable(abrade_test
+    EndpointTest.cpp
     GeneratorTest.cpp
     OptionsTest.cpp
+    RuntimeTest.cpp
   )
   abrade_target_defaults(abrade_test)
   target_link_libraries(abrade_test PRIVATE abradelib Catch2::Catch2WithMain)
   catch_discover_tests(abrade_test)
+
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  find_program(ABRADE_OPENSSL_EXECUTABLE
+    NAMES openssl openssl.exe
+    HINTS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/tools/openssl"
+  )
+  set(ABRADE_SCRAPER_INTEGRATION_COMMAND
+    "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/scraper_integration.py"
+    "$<TARGET_FILE:abrade>"
+  )
+  if(ABRADE_OPENSSL_EXECUTABLE)
+    list(APPEND ABRADE_SCRAPER_INTEGRATION_COMMAND "--openssl" "${ABRADE_OPENSSL_EXECUTABLE}")
+  endif()
+  add_test(
+    NAME ScraperIntegration
+    COMMAND ${ABRADE_SCRAPER_INTEGRATION_COMMAND}
+  )
+  set_tests_properties(ScraperIntegration PROPERTIES TIMEOUT 90)
 endif()

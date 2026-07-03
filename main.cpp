@@ -8,6 +8,7 @@
 #include "Action.h"
 #include "Writer.h"
 #include "Controller.h"
+#include "ScraperRuntime.h"
 
 using namespace std;
 
@@ -16,10 +17,13 @@ namespace {
   void run_scraper(Generator&& generator, Query&& query, Connection&& connection,
                    Controller& controller, RequestWriter& writer, boost::asio::io_context& ios,
                    const Options& options) {
-    Scraper<Generator, Query, Connection, RequestWriter> scraper{
-      std::forward<Query>(query), std::forward<Connection>(connection), std::forward<RequestWriter>(writer), controller,
-      ios,
-      options.is_verbose(), options.get_error_path()
+    Scraper<Generator, Query, Connection, RequestWriter, FileErrorLog> scraper{
+      std::forward<Query>(query),
+      std::forward<Connection>(connection),
+      std::forward<RequestWriter>(writer),
+      FileErrorLog{options.get_error_path(), options.is_verbose()},
+      controller,
+      ios
     };
     scraper.run(std::forward<Generator>(generator));
   }

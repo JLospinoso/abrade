@@ -9,7 +9,8 @@ Check out the [blog post](https://jlospinoso.github.io/cpp/developing/software/2
 ```
 > abrade -h
 Usage: abrade host pattern:
-  --host arg                            host name (eg example.com)
+  --host arg                            host name, optionally host:port (eg
+                                        example.com)
   --pattern arg (=/)                    format of URL (eg ?mynum={1:5}&myhex=0x
                                         {hhhh}). See documentation for
                                         formatting of patterns.
@@ -64,6 +65,9 @@ You must omit the `pattern` positional argument to pipe from stdin.
 You can also use the `--screen` option to detect error landing pages that
 still return 200 responses. Such responses get *screened* out and will not
 get written to disk during a `--content` scrape.
+
+Network resolve, connect, TLS handshake, proxy negotiation, request write, and
+response read operations time out after 30 seconds.
 
 
 ## [Linux ELF](https://s3.amazonaws.com/net.lospi.abrade/0.2.0/abrade)
@@ -120,6 +124,8 @@ ctest --preset ci
 ./build/ci/abrade example.com '/items/{1:3}' --test
 printf '/a\n/b\n' | ./build/ci/abrade example.com --stdin --test
 ```
+
+`ctest --preset ci` includes loopback integration tests for the scraper runtime.
 
 On Windows PowerShell, set `VCPKG_ROOT` with `$env:VCPKG_ROOT = "C:\path\to\vcpkg"`
 and use `.\build\ci\abrade.exe` for the smoke commands.

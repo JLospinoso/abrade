@@ -4,6 +4,7 @@
 #include <string>
 #include "Exception.h"
 #include "Candidate.h"
+#include "NetworkTimeout.h"
 
 using RequestType = boost::beast::http::request<boost::beast::http::string_body>;
 
@@ -28,9 +29,9 @@ struct RequestWriter {
     //TODO: Content, headers.
     request.prepare_payload();
     if (is_verbose) std::cout << "[ ] Payload for " << candidate.uri << ": " << request;
-    boost::system::error_code ec;
-    boost::beast::http::async_write(stream, request, yield[ec]);
-    if (ec) throw AbradeException{"make request", ec};
+    await_stream_with_timeout(stream, "make request", yield, [&stream, &request](auto token) {
+      boost::beast::http::async_write(stream, request, token);
+    });
   }
 
 private:
