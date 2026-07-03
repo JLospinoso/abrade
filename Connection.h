@@ -31,11 +31,11 @@ private:
 };
 
 struct PlaintextConnection {
-  PlaintextConnection(const std::string& host_name, bool sensitive_teardown, boost::asio::io_service& ios)
+  PlaintextConnection(const std::string& host_name, bool sensitive_teardown, boost::asio::io_context& ios)
     : sensitive_teardown{sensitive_teardown} {
     boost::system::error_code ec;
     boost::asio::ip::tcp::resolver resolver{ios};
-    lookup_result = resolver.resolve({host_name, "http"}, ec);
+    lookup_result = resolver.resolve(host_name, "http", ec);
     if (ec) throw AbradeException{"resolve host", ec};
   }
 
@@ -62,11 +62,11 @@ struct PlaintextConnection {
 
 private:
   bool sensitive_teardown;
-  boost::asio::ip::tcp::resolver::iterator lookup_result;
+  boost::asio::ip::tcp::resolver::results_type lookup_result;
 };
 
 struct TlsConnection {
-  TlsConnection(const std::string& host_name, bool is_verify, bool sensitive_teardown, boost::asio::io_service& ios)
+  TlsConnection(const std::string& host_name, bool is_verify, bool sensitive_teardown, boost::asio::io_context& ios)
     : sensitive_teardown{sensitive_teardown}, context{boost::asio::ssl::context::sslv23} {
     boost::system::error_code ec;
     context.set_default_verify_paths(ec);
@@ -76,7 +76,7 @@ struct TlsConnection {
                                : boost::asio::ssl::verify_none;
     context.set_verify_mode(verify_mode);
     boost::asio::ip::tcp::resolver resolver{ios};
-    lookup_result = resolver.resolve({host_name, "https"}, ec);
+    lookup_result = resolver.resolve(host_name, "https", ec);
     if (sensitive_teardown && ec) throw AbradeException{"resolve host", ec};
   }
 
@@ -103,13 +103,13 @@ struct TlsConnection {
 
 private:
   const bool sensitive_teardown;
-  boost::asio::ip::tcp::resolver::iterator lookup_result;
+  boost::asio::ip::tcp::resolver::results_type lookup_result;
   boost::asio::ssl::context context;
 };
 
 struct ProxiedConnection {
   ProxiedConnection(const std::string& proxy, const std::string& host_name, bool sensitive_teardown,
-                    boost::asio::io_service& ios)
+                    boost::asio::io_context& ios)
     : sensitive_teardown{sensitive_teardown}, host_name{host_name} {
     boost::system::error_code ec;
     const auto colon_pos = proxy.find(':');
@@ -117,7 +117,7 @@ struct ProxiedConnection {
     boost::asio::ip::tcp::resolver resolver{ios};
     const auto proxy_host = proxy.substr(0, colon_pos);
     const auto proxy_port = proxy.substr(colon_pos + 1, proxy.size());
-    proxy_lookup = resolver.resolve({proxy_host, proxy_port}, ec);
+    proxy_lookup = resolver.resolve(proxy_host, proxy_port, ec);
     if (ec) throw AbradeException{"resolve proxy", ec};
   }
 
@@ -152,13 +152,13 @@ struct ProxiedConnection {
       std::string err_msg{"SOCKS version "};
       err_msg.append(std::to_string(auth_response[0]));
       err_msg.append(" not supported.");
-      throw AbradeException{move(err_msg)};
+      throw AbradeException{std::move(err_msg)};
     }
     if (auth_response[1] != 0) {
       std::string err_msg{"SOCKS authentication "};
       err_msg.append(std::to_string(auth_response[1]));
       err_msg.append(" not supported.");
-      throw AbradeException{move(err_msg)};
+      throw AbradeException{std::move(err_msg)};
     }
 
     std::vector<unsigned char> connect_request{
@@ -181,7 +181,7 @@ struct ProxiedConnection {
     if (auth_response[1] != 0) {
       std::string err_msg{"SOCKS connection failed:"};
       err_msg.append(std::to_string(auth_response[1]));
-      throw AbradeException{move(err_msg)};
+      throw AbradeException{std::move(err_msg)};
     }
 
     return std::move(result);
@@ -190,13 +190,13 @@ struct ProxiedConnection {
 private:
   const bool sensitive_teardown;
   const std::string host_name;
-  boost::asio::ip::tcp::resolver::iterator proxy_lookup;
+  boost::asio::ip::tcp::resolver::results_type proxy_lookup;
 };
 
 struct ProxiedTlsConnection {
   ProxiedTlsConnection(const std::string& proxy, const std::string& host_name, bool is_verify,
                        bool sensitive_teardown,
-                       boost::asio::io_service& ios)
+                       boost::asio::io_context& ios)
     : sensitive_teardown{sensitive_teardown}, host_name{host_name}, context {
         boost::asio::ssl::context::sslv23_client
       } {
@@ -212,7 +212,7 @@ struct ProxiedTlsConnection {
     boost::asio::ip::tcp::resolver resolver{ios};
     const auto proxy_host = proxy.substr(0, colon_pos);
     const auto proxy_port = proxy.substr(colon_pos + 1, proxy.size());
-    proxy_lookup = resolver.resolve({proxy_host, proxy_port}, ec);
+    proxy_lookup = resolver.resolve(proxy_host, proxy_port, ec);
     if (ec) throw AbradeException{"resolve proxy", ec};
   }
 
@@ -244,13 +244,13 @@ struct ProxiedTlsConnection {
       std::string err_msg{"SOCKS version "};
       err_msg.append(std::to_string(auth_response[0]));
       err_msg.append(" not supported.");
-      throw AbradeException{move(err_msg)};
+      throw AbradeException{std::move(err_msg)};
     }
     if (auth_response[1] != 0) {
       std::string err_msg{"SOCKS authentication "};
       err_msg.append(std::to_string(auth_response[1]));
       err_msg.append(" not supported.");
-      throw AbradeException{move(err_msg)};
+      throw AbradeException{std::move(err_msg)};
     }
 
     std::vector<unsigned char> connect_request{
@@ -273,7 +273,7 @@ struct ProxiedTlsConnection {
     if (auth_response[1] != 0) {
       std::string err_msg{"SOCKS connection failed:"};
       err_msg.append(std::to_string(auth_response[1]));
-      throw AbradeException{move(err_msg)};
+      throw AbradeException{std::move(err_msg)};
     }
 
     result->get().async_handshake(boost::asio::ssl::stream_base::client, yield[ec]);
@@ -285,6 +285,6 @@ struct ProxiedTlsConnection {
 private:
   const bool sensitive_teardown;
   const std::string& host_name;
-  boost::asio::ip::tcp::resolver::iterator proxy_lookup;
+  boost::asio::ip::tcp::resolver::results_type proxy_lookup;
   boost::asio::ssl::context context;
 };

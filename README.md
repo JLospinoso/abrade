@@ -77,18 +77,6 @@ get written to disk during a `--content` scrape.
 * This is an Authenticode signed binary (Issued to: Joshua Alfred Lospinoso)
 * https://s3.amazonaws.com/net.lospi.abrade/0.2.0/abrade.exe
 
-## [Docker Image](https://quay.io/repository/jlospinoso/abrade)
-
-```
-docker pull jlospinoso/abrade:v0.2.0
-```
-
-or
-
-```
-docker pull quay.io/jlospinoso/abrade:v0.2.0
-```
-
 # v0.1
 
 ## [Linux ELF](https://s3.amazonaws.com/net.lospi.abrade/0.1.0/abrade)
@@ -102,37 +90,36 @@ docker pull quay.io/jlospinoso/abrade:v0.2.0
 * This is an Authenticode signed binary (Issued to: Joshua Alfred Lospinoso)
 * https://s3.amazonaws.com/net.lospi.abrade/0.1.0/abrade.exe
 
-## [Docker Image](https://quay.io/repository/jlospinoso/abrade)
-
-```
-docker pull jlospinoso/abrade:v0.1.0
-```
-
-or
-
-```
-docker pull quay.io/jlospinoso/abrade:v0.1.0
-```
-
 # Building Abrade
 
-1. Abrade uses [cmake](https://cmake.org), so you'll need to install it.
-2. Clone abrade.
-3. Navigate to the checked out directory.
-4. Make a `build` subdirectory.
-5. Navigate to the build directory.
-6. Invoke cmake.
-7. Use `make` (*nix) or Visual Studio (Windows) to build the project.
+Abrade uses CMake presets and vcpkg manifest mode. Install:
 
-For example, on *nix:
+- CMake 3.24 or newer
+- Ninja
+- A C++17 compiler
+- vcpkg
+
+Set `VCPKG_ROOT` to your vcpkg checkout before configuring:
 
 ```
 git clone git@github.com:JLospinoso/abrade.git
 cd abrade
-mkdir build
-cd build
-cmake ..
-make
+export VCPKG_ROOT="$HOME/src/vcpkg"
+cmake --preset dev
+cmake --build --preset dev
+ctest --preset dev
 ```
 
-On Windows, you'll need to open the `abrade.sln` file and build.
+The CI-equivalent release build uses the `ci` preset:
+
+```
+cmake --preset ci
+cmake --build --preset ci
+ctest --preset ci
+./build/ci/abrade --help
+./build/ci/abrade example.com '/items/{1:3}' --test
+printf '/a\n/b\n' | ./build/ci/abrade example.com --stdin --test
+```
+
+On Windows PowerShell, set `VCPKG_ROOT` with `$env:VCPKG_ROOT = "C:\path\to\vcpkg"`
+and use `.\build\ci\abrade.exe` for the smoke commands.

@@ -68,7 +68,7 @@ namespace {
         target.push_back(element);
       }
     }
-    return move(pattern);
+    return std::move(pattern);
   }
 
 }
