@@ -11,6 +11,10 @@ endif()
 
 option(ABRADE_ENABLE_SANITIZERS "Enable address and undefined behavior sanitizers" OFF)
 
+if(MSVC AND VCPKG_TARGET_TRIPLET MATCHES "static")
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 find_package(Boost REQUIRED COMPONENTS
   asio
   beast
@@ -32,6 +36,9 @@ function(abrade_target_defaults target)
   set_target_properties(${target} PROPERTIES
     CXX_EXTENSIONS OFF
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+  )
+  target_compile_definitions(${target} PUBLIC
+    $<$<PLATFORM_ID:Windows>:_WIN32_WINNT=0x0601>
   )
   target_compile_options(${target} PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/bigobj>
