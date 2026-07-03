@@ -14,7 +14,7 @@
 template <typename Generator, typename Query, typename Connection, typename RequestWriter>
 struct Scraper {
   Scraper(Query&& query, Connection&& connection, RequestWriter&& writer, Controller& controller,
-          boost::asio::io_service& ios, bool is_verbose, const std::string& error_path)
+          boost::asio::io_context& ios, bool is_verbose, const std::string& error_path)
     : is_verbose{is_verbose},
       error_path{error_path},
       controller{controller},
@@ -60,7 +60,7 @@ private:
             controller.register_completion(active_coroutines);
             if (active_coroutines > controller.recommended_coroutines()) return;
           }
-        });
+        }, boost::asio::detached);
   }
 
   void coroutine(const boost::asio::yield_context& yield, const Candidate& candidate) {
@@ -74,7 +74,7 @@ private:
   bool is_verbose;
   std::string error_path;
   Controller& controller;
-  boost::asio::io_service& ios;
+  boost::asio::io_context& ios;
   Query query;
   Connection connection;
   RequestWriter writer;

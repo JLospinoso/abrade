@@ -14,7 +14,7 @@ using namespace std;
 namespace {
   template <typename Generator, typename Query, typename Connection, typename RequestWriter>
   void run_scraper(Generator&& generator, Query&& query, Connection&& connection,
-                   Controller& controller, RequestWriter& writer, boost::asio::io_service& ios,
+                   Controller& controller, RequestWriter& writer, boost::asio::io_context& ios,
                    const Options& options) {
     Scraper<Generator, Query, Connection, RequestWriter> scraper{
       std::forward<Query>(query), std::forward<Connection>(connection), std::forward<RequestWriter>(writer), controller,
@@ -55,7 +55,7 @@ int main(int argc, const char** argv) {
       return EXIT_SUCCESS;
     }
     cout << options.get_pretty_print() << endl;
-    boost::asio::io_service ios;
+    boost::asio::io_context ios;
     RequestWriter writer{options.get_host(), options.is_verbose(), options.get_user_agent()};
     FixedController fixed_controller{options.get_initial_coroutines(), options.get_sample_interval()};
     AdaptiveController adaptive_controller{
@@ -90,7 +90,7 @@ int main(int argc, const char** argv) {
         if (options.is_contents()) {
           run_scraper(generator,
                       make_get(options),
-                      move(connection),
+                      std::move(connection),
                       controller,
                       writer,
                       ios,
@@ -99,7 +99,7 @@ int main(int argc, const char** argv) {
         else {
           run_scraper(generator,
             make_head(options),
-                      move(connection),
+                      std::move(connection),
                       controller,
                       writer,
                       ios,
@@ -111,7 +111,7 @@ int main(int argc, const char** argv) {
         if (options.is_contents()) {
           run_scraper(generator,
             make_get(options),
-                      move(connection),
+                      std::move(connection),
                       controller,
                       writer,
                       ios,
@@ -120,7 +120,7 @@ int main(int argc, const char** argv) {
         else {
           run_scraper(generator,
             make_head(options),
-                      move(connection),
+                      std::move(connection),
                       controller,
                       writer,
                       ios,
@@ -134,7 +134,7 @@ int main(int argc, const char** argv) {
         if (options.is_contents()) {
           run_scraper(generator,
             make_get(options),
-                      move(connection),
+                      std::move(connection),
                       controller,
                       writer,
                       ios,
@@ -143,7 +143,7 @@ int main(int argc, const char** argv) {
         else {
           run_scraper(generator,
             make_head(options),
-                      move(connection),
+                      std::move(connection),
                       controller,
                       writer,
                       ios,
@@ -155,7 +155,7 @@ int main(int argc, const char** argv) {
         if (options.is_contents()) {
           run_scraper(generator,
             make_get(options),
-                      move(connection),
+                      std::move(connection),
                       controller,
                       writer,
                       ios,
@@ -164,7 +164,7 @@ int main(int argc, const char** argv) {
         else {
           run_scraper(generator,
                       make_head(options),
-                      move(connection),
+                      std::move(connection),
                       controller,
                       writer,
                       ios,

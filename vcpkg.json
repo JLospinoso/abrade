@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "abrade",
+  "version-string": "0.2.0",
+  "builtin-baseline": "38a77589121bd7ec6487927b79c191a75d4ebdd6",
+  "dependencies": [
+    "boost-asio",
+    "boost-beast",
+    "boost-circular-buffer",
+    "boost-context",
+    "boost-coroutine",
+    "boost-filesystem",
+    "boost-lexical-cast",
+    "boost-program-options",
+    "boost-regex",
+    "boost-system",
+    "boost-tokenizer",
+    "catch2",
+    "openssl"
+  ]
+}
