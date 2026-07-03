@@ -4,6 +4,7 @@
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
 #include "Exception.h"
+#include "HttpStatus.h"
 #include <iostream>
 #include <sstream>
 
@@ -17,7 +18,7 @@ struct HeadAction {
   }
 
   void process(int status_code, const std::string_view& candidate) {
-    if (status_code >= 200 && status_code < 300) { file << candidate << std::endl; }
+    if (is_success_status(status_code)) { file << candidate << std::endl; }
     if (is_verbose) std::cout << candidate << ": " << status_code << std::endl;
   }
 
@@ -44,7 +45,7 @@ struct GetAction {
       std::cout << "[ ] Response from " << candidate << ":\n" << contents_string << std::endl;
       write_out(contents_string, candidate);
     }
-    else if (status_code >= 200 && status_code < 300) { write_out(contents, candidate); }
+    else if (is_success_status(status_code)) { write_out(contents, candidate); }
   }
 
 private:

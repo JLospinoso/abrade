@@ -8,6 +8,8 @@
 #include "Action.h"
 #include "Exception.h"
 #include "Candidate.h"
+#include "HttpStatus.h"
+#include "NetworkTimeout.h"
 
 //TODO: PostQuery
 
@@ -17,15 +19,15 @@ struct GetQuery {
 
   template <typename Stream>
   void execute(Stream& stream, const std::string_view& description, const boost::asio::yield_context& yield) {
-    boost::system::error_code ec;
     boost::beast::flat_buffer buffer;
     boost::beast::http::response<boost::beast::http::dynamic_body> response;
-    boost::beast::http::async_read(stream, buffer, response, yield[ec]);
-    if (ec) throw AbradeException{"get query", ec};
+    await_stream_with_timeout(stream, "get query", yield, [&stream, &buffer, &response](auto token) {
+      boost::beast::http::async_read(stream, buffer, response, token);
+    });
     action.process(response.result_int(), response, description);
 
     const auto status_code = response.result_int();
-    if (print_found && (status_code >= 200 && status_code < 300)) {
+    if (print_found && is_success_status(status_code)) {
       std::cout << "[+] Status of " << description << ": " << status_code << std::endl;
     }
     else if (verbose) { std::cout << "[-] Status of " << description << ": " << status_code << std::endl; }
@@ -45,16 +47,16 @@ struct HeadQuery {
 
   template <typename Stream>
   void execute(Stream& stream, const std::string_view& description, const boost::asio::yield_context& yield) {
-    boost::system::error_code ec;
     boost::beast::flat_buffer buffer;
     boost::beast::http::response_parser<boost::beast::http::empty_body> parser;
-    boost::beast::http::async_read_header(stream, buffer, parser, yield[ec]);
-    if (ec) throw AbradeException{"head query", ec};
+    await_stream_with_timeout(stream, "head query", yield, [&stream, &buffer, &parser](auto token) {
+      boost::beast::http::async_read_header(stream, buffer, parser, token);
+    });
     const auto& response = parser.release();
     action.process(response.result_int(), description);
 
     const auto status_code = response.result_int();
-    if (print_found && (status_code >= 200 && status_code < 300)) {
+    if (print_found && is_success_status(status_code)) {
       std::cout << "[+] Status of " << description << ": " << status_code << std::endl;
     }
     else if (verbose) { std::cout << "[-] Status of " << description << ": " << status_code << std::endl; }

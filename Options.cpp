@@ -13,7 +13,7 @@ Options::Options(int argc, const char** argv)
     test{}, telescoping{} {
   options_description description("Usage: abrade host pattern");
   description.add_options()
-    ("host", value<string>(&host), "host name (eg example.com)")
+    ("host", value<string>(&host), "host name, optionally host:port (eg example.com)")
     ("pattern", value<string>(&pattern)->default_value("/"), "format of URL (eg ?mynum={1:5}&myhex=0x{hhhh}). See documentation for formatting of patterns.")
     ("agent", value<string>(&user_agent)->default_value("Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0"), "User-agent string (default: Firefox 47)")
     ("out", value<string>(&output_path)->default_value(""), "output path. dir if contents enabled. (default: HOSTNAME)")

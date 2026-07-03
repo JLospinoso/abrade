@@ -10,13 +10,13 @@
 #include <fstream>
 #include "Controller.h"
 #include "Candidate.h"
+#include "ScraperRuntime.h"
 
-template <typename Generator, typename Query, typename Connection, typename RequestWriter>
+template <typename Generator, typename Query, typename Connection, typename RequestWriter, typename ErrorLog>
 struct Scraper {
-  Scraper(Query&& query, Connection&& connection, RequestWriter&& writer, Controller& controller,
-          boost::asio::io_context& ios, bool is_verbose, const std::string& error_path)
-    : is_verbose{is_verbose},
-      error_path{error_path},
+  Scraper(Query&& query, Connection&& connection, RequestWriter&& writer, ErrorLog&& error_log, Controller& controller,
+          boost::asio::io_context& ios)
+    : error_log{std::forward<ErrorLog>(error_log)},
       controller{controller},
       ios{ios},
       query {std::forward<Query>(query)},
@@ -44,18 +44,10 @@ private:
           while (const auto uri = generator.next()) { 
             if (active_coroutines < controller.recommended_coroutines()) { spawn_coroutine(generator); }
             // TODO: Need to generate URI, headers, and contents. How to integrate patterns?
-            Candidate candidate{
-              *uri,
-              {}, // Headers
-              {}  // Contents
-            };
+            auto candidate = make_candidate(*uri);
             try { coroutine(yield, candidate); }
             catch (const std::exception& e) {
-              std::ofstream file;
-              file.exceptions(std::ios_base::failbit | std::ios_base::badbit);
-              file.open(error_path, std::ofstream::out | std::ofstream::app);
-              file << *uri << ": " << e.what() << std::endl;
-              if (is_verbose) std::cerr << "[-] Exception: " << e.what() << std::endl;
+              error_log.record(*uri, e);
             }
             controller.register_completion(active_coroutines);
             if (active_coroutines > controller.recommended_coroutines()) return;
@@ -71,8 +63,7 @@ private:
     query.execute(instance->get(), candidate.description(), yield);
   }
 
-  bool is_verbose;
-  std::string error_path;
+  ErrorLog error_log;
   Controller& controller;
   boost::asio::io_context& ios;
   Query query;
