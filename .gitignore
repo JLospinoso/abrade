@@ -98,6 +98,8 @@ CMakeUserPresets.json
 build/*
 build-nix/*
 build-win/*
+dist/*
+release-stage/*
 abrade.dir/*
 abrade_test.dir/*
 abradelib.dir/*

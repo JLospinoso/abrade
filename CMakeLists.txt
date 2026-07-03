@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(abrade VERSION 0.2.0 LANGUAGES CXX)
+project(abrade VERSION 0.3.0 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 include(CTest)
@@ -94,6 +94,7 @@ abrade_target_defaults(abrade)
 target_link_libraries(abrade PRIVATE abradelib)
 
 install(TARGETS abrade RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+install(FILES LICENSE README.md DESTINATION "${CMAKE_INSTALL_DOCDIR}")
 
 if(BUILD_TESTING)
   find_package(Catch2 3 REQUIRED)

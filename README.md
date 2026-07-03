@@ -6,6 +6,38 @@ _Abrade is a coroutine-based web scraper suitable for querying the existence (a 
 
 Check out the [blog post](https://jlospinoso.github.io/cpp/developing/software/2017/09/15/abrade-web-scraper.html) at [http://lospi.net](http://lospi.net) for usage and examples.
 
+# Installing Abrade
+
+Current Abrade binaries are published on the
+[GitHub Releases](https://github.com/JLospinoso/abrade/releases) page.
+
+Download the archive for your platform, verify it with `SHA256SUMS`, and place
+the executable on your `PATH`.
+
+Linux:
+
+```
+sha256sum -c SHA256SUMS --ignore-missing
+tar -xzf abrade-VERSION-linux-x64.tar.gz
+```
+
+macOS:
+
+```
+shasum -a 256 -c SHA256SUMS
+tar -xzf abrade-VERSION-macos-arm64.tar.gz
+```
+
+macOS users may need to allow the downloaded executable in System Settings
+because release artifacts are not notarized.
+
+Windows PowerShell:
+
+```
+Get-FileHash .\abrade-VERSION-windows-x64.zip -Algorithm SHA256
+Expand-Archive .\abrade-VERSION-windows-x64.zip
+```
+
 ```
 > abrade -h
 Usage: abrade host pattern:
@@ -69,30 +101,15 @@ get written to disk during a `--content` scrape.
 Network resolve, connect, TLS handshake, proxy negotiation, request write, and
 response read operations time out after 30 seconds.
 
+# Historical Binaries
 
-## [Linux ELF](https://s3.amazonaws.com/net.lospi.abrade/0.2.0/abrade)
+Older pre-GitHub-Releases binaries were distributed through S3. These links are
+kept for historical reference only; use GitHub Releases for current downloads.
 
-* 2,310 KB. SHA-256=89df60eebcf1c8f224fed98b89ee403b45022c86181a12e84cba8abc5d56ca07
-* https://s3.amazonaws.com/net.lospi.abrade/0.2.0/abrade
-
-## [Windows EXE](https://s3.amazonaws.com/net.lospi.abrade/0.2.0/abrade.exe)
-
-* 1,187 KB. SHA-256=b574aa1d8e37f9f0a867ed4d890d5b3d152388f0f4e3d9c9c4223d7804d1be4b
-* This is an Authenticode signed binary (Issued to: Joshua Alfred Lospinoso)
-* https://s3.amazonaws.com/net.lospi.abrade/0.2.0/abrade.exe
-
-# v0.1
-
-## [Linux ELF](https://s3.amazonaws.com/net.lospi.abrade/0.1.0/abrade)
-
-* 2,243 KB. SHA-256=1b8adf0fe8b7db252c4f84398bf5980f0a0c57a7592cd529ac6558b57407f238
-* https://s3.amazonaws.com/net.lospi.abrade/0.1.0/abrade
-
-## [Windows EXE](https://s3.amazonaws.com/net.lospi.abrade/0.1.0/abrade.exe)
-
-* 1,181 KB. SHA-256=f98ca3a68fbdcc7dde3f7db868b24d8a0b328d3c05732aa1d81b5a70b0531f31
-* This is an Authenticode signed binary (Issued to: Joshua Alfred Lospinoso)
-* https://s3.amazonaws.com/net.lospi.abrade/0.1.0/abrade.exe
+- v0.2.0 Linux ELF: SHA-256 `89df60eebcf1c8f224fed98b89ee403b45022c86181a12e84cba8abc5d56ca07`
+- v0.2.0 Windows EXE: SHA-256 `b574aa1d8e37f9f0a867ed4d890d5b3d152388f0f4e3d9c9c4223d7804d1be4b`
+- v0.1.0 Linux ELF: SHA-256 `1b8adf0fe8b7db252c4f84398bf5980f0a0c57a7592cd529ac6558b57407f238`
+- v0.1.0 Windows EXE: SHA-256 `f98ca3a68fbdcc7dde3f7db868b24d8a0b328d3c05732aa1d81b5a70b0531f31`
 
 # Building Abrade
 
@@ -129,3 +146,9 @@ printf '/a\n/b\n' | ./build/ci/abrade example.com --stdin --test
 
 On Windows PowerShell, set `VCPKG_ROOT` with `$env:VCPKG_ROOT = "C:\path\to\vcpkg"`
 and use `.\build\ci\abrade.exe` for the smoke commands.
+
+# Releasing Abrade
+
+Maintainer release instructions live in [docs/RELEASING.md](docs/RELEASING.md).
+Release tags use `vMAJOR.MINOR.PATCH` and must match the CMake project version
+without the leading `v`.
