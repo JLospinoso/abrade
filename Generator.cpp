@@ -1,6 +1,9 @@
 #include <boost/lexical_cast.hpp>
 #include "Generator.h"
+#include <algorithm>
 #include <cmath>
+#include <iterator>
+#include <limits>
 #include <numeric>
 #include <stdexcept>
 #include <iostream>
@@ -17,6 +20,20 @@ namespace {
   const string alphanumeric_lower{"0123456789abcdefghijklmnopqrstuvwxyz"}; // n
   const string alphanumeric_upper{"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"}; // N
   const string alphanumeric{"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"}; // b
+
+  size_t checked_add(size_t left, size_t right) {
+    if (right > std::numeric_limits<size_t>::max() - left) {
+      throw overflow_error{"Range size too large for size_t. Use logarithm."};
+    }
+    return left + right;
+  }
+
+  size_t checked_multiply(size_t left, size_t right) {
+    if (right != 0 && left > std::numeric_limits<size_t>::max() / right) {
+      throw overflow_error{"Range size too large for size_t. Use logarithm."};
+    }
+    return left * right;
+  }
 
   const string* get_domain(char element) {
     switch (element) {
@@ -58,8 +75,10 @@ namespace {
       pattern.type = Pattern::Type::Continuation;
       return pattern;
     }
-    for (auto element_iter = input.begin() + pattern.start + 1;
-         element_iter < input.begin() + pattern.end;
+    const auto token_start = std::next(input.begin(), static_cast<string::difference_type>(pattern.start + 1));
+    const auto token_end = std::next(input.begin(), static_cast<string::difference_type>(pattern.end));
+    for (auto element_iter = token_start;
+         element_iter < token_end;
          ++element_iter) {
       const auto element = *element_iter;
       if (element == ':') { pattern.type = Pattern::Type::Explicit; }
@@ -68,14 +87,14 @@ namespace {
         target.push_back(element);
       }
     }
-    return std::move(pattern);
+    return pattern;
   }
 
 }
 
 
-ImplicitRange::ImplicitRange(const string& pattern, bool leading_zeros)
-  : leading_zeros {leading_zeros} {
+ImplicitRange::ImplicitRange(const string& pattern, bool preserve_leading_zeros)
+  : leading_zeros {preserve_leading_zeros} {
   for (auto element : pattern) {
     domains.emplace_back(get_domain(element));
     digits.emplace_back(0);
@@ -95,9 +114,7 @@ size_t ImplicitRange::size() const {
   return std::accumulate(domains.begin(), domains.end(), size_t{1},
                          [](const auto& a, const auto& b) {
                          auto size = b->size();
-                         auto new_result = a * size;
-                         if (size != 0 && new_result / size != a) throw overflow_error{"Range size too large for size_t. Use logarithm."};
-                         return new_result;
+                         return checked_multiply(a, size);
                        });
 }
 
@@ -131,16 +148,21 @@ string ImplicitRange::get_current() const {
   return result;
 }
 
-ExplicitRange::ExplicitRange(size_t start, size_t end) : start{start}, end{end} {
-  if (end < start) throw runtime_error{ "End of pattern cannot be less than start." };
-  current = start;
+ExplicitRange::ExplicitRange(size_t range_start, size_t range_end) : start{range_start}, end{range_end} {
+  if (range_end < range_start) throw runtime_error{ "End of pattern cannot be less than start." };
+  current = range_start;
 }
 
 void ExplicitRange::reset() { current = start; }
 
-double ExplicitRange::log_size() const { return log(size()); }
+double ExplicitRange::log_size() const {
+  const auto cardinality = static_cast<long double>(end) - static_cast<long double>(start) + 1.0L;
+  return static_cast<double>(log(cardinality));
+}
 
-size_t ExplicitRange::size() const { return end - start + 1; }
+size_t ExplicitRange::size() const {
+  return checked_add(end - start, 1);
+}
 
 bool ExplicitRange::increment_return_carry() { return current++ == end; }
 
@@ -155,9 +177,9 @@ UriGenerator::UriGenerator(const string& input, bool lead_zero, bool is_telescop
     case Pattern::Type::Explicit:
       size_t start, end;
       try { start = boost::lexical_cast<size_t>(pattern->tokens.first); }
-      catch (boost::bad_lexical_cast) { throw runtime_error{ "Unable to parse pattern " + pattern->tokens.first }; }
+      catch (const boost::bad_lexical_cast&) { throw runtime_error{ "Unable to parse pattern " + pattern->tokens.first }; }
       try { end = boost::lexical_cast<size_t>(pattern->tokens.second); }
-      catch (boost::bad_lexical_cast) { throw runtime_error{ "Unable to parse pattern " + pattern->tokens.second }; }
+      catch (const boost::bad_lexical_cast&) { throw runtime_error{ "Unable to parse pattern " + pattern->tokens.second }; }
       ranges.emplace_back(make_unique<ExplicitRange>(start, end));
       break;
     case Pattern::Type::Implicit:
@@ -220,19 +242,19 @@ void UriGenerator::increment_ranges() {
 size_t UriGenerator::get_range_size() const {
   return std::accumulate(ranges.begin(), ranges.end(),
                          size_t{1},
-                         [](const auto& a, const auto& b) { return a * b->size(); });
+                         [](const auto& a, const auto& b) { return checked_multiply(a, b->size()); });
 }
 
 double UriGenerator::get_log_range_size() const {
-  return log(std::accumulate(ranges.begin(), ranges.end(),
-                             double{},
-                             [](const auto& a, const auto& b) { return a + exp(b->log_size()); }));
+  return std::accumulate(ranges.begin(), ranges.end(),
+                         double{},
+                         [](const auto& a, const auto& b) { return a + b->log_size(); });
 }
 
 TelescopingRange::TelescopingRange(const string& pattern_template, bool lead_zero) : index{} {
-  for (size_t index{}; index < pattern_template.size(); index++) {
-    const auto start = pattern_template.size() - index - 1;
-    const auto length = index + 1;
+  for (size_t offset{}; offset < pattern_template.size(); offset++) {
+    const auto start = pattern_template.size() - offset - 1;
+    const auto length = offset + 1;
     ranges.emplace_back(ImplicitRange{pattern_template.substr(start, length), lead_zero});
   }
 }
@@ -252,13 +274,24 @@ string TelescopingRange::get_current() const {
 size_t TelescopingRange::size() const {
   return std::accumulate(ranges.begin(), ranges.end(),
                          size_t{},
-                         [](const auto& a, const auto& b) { return a + b.size(); });
+                         [](const auto& a, const auto& b) { return checked_add(a, b.size()); });
 }
 
 double TelescopingRange::log_size() const {
-  return std::accumulate(ranges.begin(), ranges.end(),
-                         double{},
-                         [](const auto& a, const auto& b) { return a + b.log_size(); });
+  const auto largest = std::max_element(
+    ranges.begin(),
+    ranges.end(),
+    [](const auto& left, const auto& right) { return left.log_size() < right.log_size(); }
+  );
+  if (largest == ranges.end()) return 0;
+
+  const auto max_log = largest->log_size();
+  const auto scaled_sum = std::accumulate(ranges.begin(), ranges.end(),
+                                          double{},
+                                          [max_log](const auto& sum, const auto& range) {
+                                            return sum + exp(range.log_size() - max_log);
+                                          });
+  return max_log + log(scaled_sum);
 }
 
 void TelescopingRange::reset() {
@@ -268,7 +301,7 @@ void TelescopingRange::reset() {
   index = 0;
 }
 
-ContinuationRange::ContinuationRange(const Range& target) : target{target} { }
+ContinuationRange::ContinuationRange(const Range& target_range) : target{target_range} { }
 
 bool ContinuationRange::increment_return_carry() {
   return true;

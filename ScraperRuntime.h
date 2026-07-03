@@ -7,6 +7,7 @@
 #include <string_view>
 #include "Candidate.h"
 
+/// Builds the currently supported candidate shape from a generated URI path.
 inline Candidate make_candidate(std::string uri) {
   return Candidate{
     std::move(uri),
@@ -15,11 +16,13 @@ inline Candidate make_candidate(std::string uri) {
   };
 }
 
+/// Append-only scraper error log used to retain candidate context for failures.
 struct FileErrorLog {
-  FileErrorLog(std::string path, bool verbose)
-    : path{std::move(path)},
-      verbose{verbose} { }
+  FileErrorLog(std::string log_path, bool verbose_output)
+    : path{std::move(log_path)},
+      verbose{verbose_output} { }
 
+  /// Records the candidate URI and exception message; verbose mode also writes to stderr.
   void record(std::string_view uri, const std::exception& error) const {
     std::ofstream file;
     file.exceptions(std::ios_base::failbit | std::ios_base::badbit);

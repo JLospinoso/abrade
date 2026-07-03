@@ -35,6 +35,32 @@
       }
     },
     {
+      "name": "quality",
+      "displayName": "Strict warning debug build",
+      "inherits": "base",
+      "cacheVariables": {
+        "ABRADE_ENABLE_WARNINGS": "ON",
+        "ABRADE_WARNINGS_AS_ERRORS": "ON",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "coverage",
+      "displayName": "Coverage-instrumented debug build",
+      "inherits": "base",
+      "condition": {
+        "type": "notEquals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "ABRADE_ENABLE_COVERAGE": "ON",
+        "ABRADE_ENABLE_WARNINGS": "ON",
+        "ABRADE_WARNINGS_AS_ERRORS": "ON",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
       "name": "release",
       "displayName": "Release build",
       "inherits": "base",
@@ -67,6 +93,14 @@
       "configurePreset": "ci"
     },
     {
+      "name": "quality",
+      "configurePreset": "quality"
+    },
+    {
+      "name": "coverage",
+      "configurePreset": "coverage"
+    },
+    {
       "name": "release",
       "configurePreset": "release"
     },
@@ -88,6 +122,23 @@
       "configurePreset": "ci",
       "output": {
         "outputOnFailure": true
+      }
+    },
+    {
+      "name": "quality",
+      "configurePreset": "quality",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "coverage",
+      "configurePreset": "coverage",
+      "output": {
+        "outputOnFailure": true
+      },
+      "environment": {
+        "LLVM_PROFILE_FILE": "${sourceDir}/build/coverage/abrade-%p.profraw"
       }
     },
     {

@@ -3,20 +3,25 @@
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/asio/spawn.hpp>
+#include <algorithm>
 #include <string>
 #include <array>
 #include "Exception.h"
 #include "Endpoint.h"
 #include "NetworkTimeout.h"
+#include <functional>
+#include <iostream>
 #include <utility>
+#include <iterator>
 #include <memory>
 #include <vector>
 
+/// Owns connection teardown behavior for a stream borrowed or built by a connection policy.
 template <typename Stream>
 struct Connection {
   template <typename... Args>
-  Connection(std::function<void(Stream&)>&& cleanup, Args&&... args) : stream {std::forward<Args>(args)...},
-                                                                       cleanup{std::move(cleanup)} { }
+  Connection(std::function<void(Stream&)>&& cleanup_callback, Args&&... args) : stream {std::forward<Args>(args)...},
+                                                                                cleanup{std::move(cleanup_callback)} { }
 
   ~Connection() {
     try { if (cleanup) cleanup(stream); }
@@ -33,12 +38,14 @@ private:
   std::function<void(Stream&)> cleanup;
 };
 
+/// Opens direct plaintext TCP connections.
 struct PlaintextConnection {
-  PlaintextConnection(const std::string& host_name, bool sensitive_teardown, boost::asio::io_context& ios)
-    : sensitive_teardown{sensitive_teardown},
+  PlaintextConnection(const std::string& host_name, bool strict_teardown, boost::asio::io_context& io_context)
+    : sensitive_teardown{strict_teardown},
       endpoint{parse_host_endpoint(host_name, "80", 80)},
-      ios{ios} { }
+      ios{io_context} { }
 
+  /// Resolves the target host, connects the socket, and returns a managed plaintext stream.
   auto connect(
     boost::asio::ip::tcp::socket& sock,
     const boost::asio::yield_context& yield) {
@@ -64,7 +71,7 @@ struct PlaintextConnection {
       boost::asio::async_connect(result->get(), lookup_result, token);
     });
 
-    return std::move(result);
+    return result;
   }
 
 private:
@@ -73,12 +80,13 @@ private:
   boost::asio::io_context& ios;
 };
 
+/// Opens direct TLS connections.
 struct TlsConnection {
-  TlsConnection(const std::string& host_name, bool is_verify, bool sensitive_teardown, boost::asio::io_context& ios)
-    : sensitive_teardown{sensitive_teardown},
+  TlsConnection(const std::string& host_name, bool is_verify, bool strict_teardown, boost::asio::io_context& io_context)
+    : sensitive_teardown{strict_teardown},
       endpoint{parse_host_endpoint(host_name, "443", 443)},
       context{boost::asio::ssl::context::tls_client},
-      ios{ios} {
+      ios{io_context} {
     boost::system::error_code ec;
     if (is_verify) {
       context.set_default_verify_paths(ec);
@@ -90,6 +98,7 @@ struct TlsConnection {
     context.set_verify_mode(verify_mode);
   }
 
+  /// Resolves the target host, connects the socket, completes TLS handshake, and returns a managed stream.
   auto connect(
     boost::asio::ip::tcp::socket& sock,
     const boost::asio::yield_context& yield) {
@@ -116,7 +125,7 @@ struct TlsConnection {
       result->get().async_handshake(boost::asio::ssl::stream_base::client, token);
     });
 
-    return std::move(result);
+    return result;
   }
 
 private:
@@ -126,14 +135,16 @@ private:
   boost::asio::io_context& ios;
 };
 
+/// Opens plaintext TCP connections through a SOCKS5 proxy.
 struct ProxiedConnection {
-  ProxiedConnection(const std::string& proxy, const std::string& host_name, bool sensitive_teardown,
-                    boost::asio::io_context& ios)
-    : sensitive_teardown{sensitive_teardown},
+  ProxiedConnection(const std::string& proxy, const std::string& host_name, bool strict_teardown,
+                    boost::asio::io_context& io_context)
+    : sensitive_teardown{strict_teardown},
       endpoint{parse_host_endpoint(host_name, "80", 80)},
       proxy_endpoint{parse_host_endpoint(proxy, "1080", 1080)},
-      ios{ios} { }
+      ios{io_context} { }
 
+  /// Connects to the proxy, negotiates SOCKS5, and returns a managed plaintext stream to the target.
   auto connect(
     boost::asio::ip::tcp::socket& sock,
     const boost::asio::yield_context& yield
@@ -167,7 +178,7 @@ struct ProxiedConnection {
       boost::asio::async_write(result->get(), boost::asio::buffer(auth_request.data(), auth_request.size()), token);
     });
 
-    std::array<char, 2> auth_response;
+    std::array<unsigned char, 2> auth_response;
     await_stream_with_timeout(result->get(), "proxy read auth", yield, [&result, &auth_response](auto token) {
       boost::asio::async_read(result->get(), boost::asio::buffer(auth_response.data(), auth_response.size()), token);
     });
@@ -192,14 +203,15 @@ struct ProxiedConnection {
       0x03, // Domain
       static_cast<unsigned char>(endpoint.host.size())
     };
-    for (auto& name_byte : endpoint.host) { connect_request.emplace_back(name_byte); }
+    std::ranges::transform(endpoint.host, std::back_inserter(connect_request),
+                           [](char name_byte) { return static_cast<unsigned char>(name_byte); });
     connect_request.emplace_back(static_cast<unsigned char>((endpoint.port >> 8) & 0xFF));
     connect_request.emplace_back(static_cast<unsigned char>(endpoint.port & 0xFF));
     await_stream_with_timeout(result->get(), "proxy connection", yield, [&result, &connect_request](auto token) {
       boost::asio::async_write(result->get(), boost::asio::buffer(connect_request.data(), connect_request.size()), token);
     });
 
-    std::array<char, 10> connect_response;
+    std::array<unsigned char, 10> connect_response;
     await_stream_with_timeout(result->get(), "proxy read", yield, [&result, &connect_response](auto token) {
       boost::asio::async_read(result->get(), boost::asio::buffer(connect_response.data(), connect_response.size()), token);
     });
@@ -210,7 +222,7 @@ struct ProxiedConnection {
       throw AbradeException{std::move(err_msg)};
     }
 
-    return std::move(result);
+    return result;
   }
 
 private:
@@ -220,15 +232,16 @@ private:
   boost::asio::io_context& ios;
 };
 
+/// Opens TLS connections through a SOCKS5 proxy.
 struct ProxiedTlsConnection {
   ProxiedTlsConnection(const std::string& proxy, const std::string& host_name, bool is_verify,
-                       bool sensitive_teardown,
-                       boost::asio::io_context& ios)
-    : sensitive_teardown{sensitive_teardown},
+                       bool strict_teardown,
+                       boost::asio::io_context& io_context)
+    : sensitive_teardown{strict_teardown},
       endpoint{parse_host_endpoint(host_name, "443", 443)},
       proxy_endpoint{parse_host_endpoint(proxy, "1080", 1080)},
       context{boost::asio::ssl::context::tls_client},
-      ios{ios} {
+      ios{io_context} {
     boost::system::error_code ec;
     if (is_verify) {
       context.set_default_verify_paths(ec);
@@ -240,6 +253,7 @@ struct ProxiedTlsConnection {
     context.set_verify_mode(verify_mode);
   }
 
+  /// Negotiates SOCKS5 through the proxy, performs TLS handshake, and returns a managed stream.
   auto connect(
     boost::asio::ip::tcp::socket& sock,
     const boost::asio::yield_context& yield
@@ -270,7 +284,7 @@ struct ProxiedTlsConnection {
       boost::asio::async_write(sock, boost::asio::buffer(auth_request.data(), auth_request.size()), token);
     });
 
-    std::array<char, 2> auth_response;
+    std::array<unsigned char, 2> auth_response;
     await_stream_with_timeout(sock, "proxy read auth", yield, [&sock, &auth_response](auto token) {
       boost::asio::async_read(sock, boost::asio::buffer(auth_response.data(), auth_response.size()), token);
     });
@@ -295,14 +309,15 @@ struct ProxiedTlsConnection {
       0x03, // Domain
       static_cast<unsigned char>(endpoint.host.size())
     };
-    for (auto& name_byte : endpoint.host) { connect_request.emplace_back(name_byte); }
+    std::ranges::transform(endpoint.host, std::back_inserter(connect_request),
+                           [](char name_byte) { return static_cast<unsigned char>(name_byte); });
     connect_request.emplace_back(static_cast<unsigned char>((endpoint.port >> 8) & 0xFF));
     connect_request.emplace_back(static_cast<unsigned char>(endpoint.port & 0xFF));
     await_stream_with_timeout(sock, "proxy connection", yield, [&sock, &connect_request](auto token) {
       boost::asio::async_write(sock, boost::asio::buffer(connect_request.data(), connect_request.size()), token);
     });
 
-    std::array<char, 10> connect_response;
+    std::array<unsigned char, 10> connect_response;
     await_stream_with_timeout(sock, "proxy read", yield, [&sock, &connect_response](auto token) {
       boost::asio::async_read(sock, boost::asio::buffer(connect_response.data(), connect_response.size()), token);
     });
@@ -317,7 +332,7 @@ struct ProxiedTlsConnection {
       result->get().async_handshake(boost::asio::ssl::stream_base::client, token);
     });
 
-    return std::move(result);
+    return result;
   }
 
 private:

@@ -12,7 +12,7 @@ namespace {
     tokens.insert(tokens.end(), tokenizer.begin(), tokenizer.end());
     std::vector<const char*> cmdline{"abrade"};
     transform(tokens.begin(), tokens.end(), back_inserter(cmdline),
-              [](const auto& str) { return str.c_str(); });
+              [](const auto& token) { return token.c_str(); });
     return Options{static_cast<int>(cmdline.size()), cmdline.data()};
   }
 }

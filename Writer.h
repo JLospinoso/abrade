@@ -8,6 +8,7 @@
 
 using RequestType = boost::beast::http::request<boost::beast::http::string_body>;
 
+/// Builds the immutable pieces shared by every generated HTTP request.
 inline RequestType build_request_template(const std::string& host_name, const std::string& user_agent) {
   RequestType request;
   request.set(boost::beast::http::field::host, host_name);
@@ -16,10 +17,12 @@ inline RequestType build_request_template(const std::string& host_name, const st
   return request;
 }
 
+/// Writes an HTTP request for a generated candidate to an established stream.
 struct RequestWriter {
-  RequestWriter(const std::string& host_name, bool is_verbose, const std::string& user_agent)
-    : is_verbose{ is_verbose }, request_template{ build_request_template(host_name, user_agent) } {}
+  RequestWriter(const std::string& host_name, bool verbose_output, const std::string& user_agent)
+    : is_verbose{ verbose_output }, request_template{ build_request_template(host_name, user_agent) } {}
 
+  /// Applies the query method and candidate URI, then writes the request asynchronously.
   template <typename Stream, typename Query>
   void make_request(Stream&& stream, const Query& query, const Candidate& candidate,
                     const boost::asio::yield_context& yield) {

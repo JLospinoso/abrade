@@ -2,6 +2,19 @@
 #include "Endpoint.h"
 
 TEST_CASE("HostEndpoint") {
+  SECTION("parses valid TCP port boundaries") {
+    REQUIRE(parse_tcp_port("1") == 1);
+    REQUIRE(parse_tcp_port("65535") == 65535);
+  }
+
+  SECTION("rejects malformed TCP ports") {
+    REQUIRE_THROWS(parse_tcp_port(""));
+    REQUIRE_THROWS(parse_tcp_port("0"));
+    REQUIRE_THROWS(parse_tcp_port("65536"));
+    REQUIRE_THROWS(parse_tcp_port("443/tcp"));
+    REQUIRE_THROWS(parse_tcp_port("https"));
+  }
+
   SECTION("uses default service and port for plain host") {
     const auto endpoint = parse_host_endpoint("example.com", "443", 443);
 

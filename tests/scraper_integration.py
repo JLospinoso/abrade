@@ -326,6 +326,20 @@ def test_socks_proxy_head(exe: Path, tmp: Path, server: FixtureServer) -> None:
   require(not err.exists() or read_text(err) == "", "SOCKS proxy HEAD should not write errors")
 
 
+def test_socks_proxy_get_contents(exe: Path, tmp: Path, server: FixtureServer) -> None:
+  out_dir = tmp / "proxy-contents"
+  err = tmp / "proxy-contents.err"
+  with SocksProxyServer() as proxy:
+    run_abrade(
+      exe,
+      tmp,
+      [server.authority, "/found", "--proxy", proxy.authority, "--contents", "--out", str(out_dir), "--err", str(err)],
+    )
+  output = out_dir / "_found"
+  require(output.exists(), "SOCKS proxy should forward GET requests")
+  require("FOUND BODY" in read_text(output), "SOCKS proxy GET should write response body")
+
+
 def test_tls_no_verify(exe: Path, tmp: Path, server: FixtureServer) -> None:
   out = tmp / "tls-head.txt"
   err = tmp / "tls-head.err"
@@ -333,16 +347,40 @@ def test_tls_no_verify(exe: Path, tmp: Path, server: FixtureServer) -> None:
   require(read_text(out).splitlines() == ["/secure"], "TLS without verification should accept test cert")
 
 
+def test_tls_get_contents(exe: Path, tmp: Path, server: FixtureServer) -> None:
+  out_dir = tmp / "tls-contents"
+  err = tmp / "tls-contents.err"
+  run_abrade(exe, tmp, [server.authority, "/secure", "--tls", "--contents", "--out", str(out_dir), "--err", str(err)])
+  output = out_dir / "_secure"
+  require(output.exists(), "TLS GET should write response body")
+  require("SECURE BODY" in read_text(output), "TLS GET should include secure response body")
+
+
 def test_tls_verify_rejects_self_signed(exe: Path, tmp: Path, server: FixtureServer) -> None:
   out = tmp / "tls-verify.txt"
   err = tmp / "tls-verify.err"
   result = run_abrade(exe, tmp, [server.authority, "/secure", "--tls", "--verify", "--out", str(out), "--err", str(err)])
+  combined_output = result.stdout + result.stderr
   if err.exists():
-    require("/secure" in read_text(err), "TLS verify failure should identify the candidate URI")
-  else:
-    combined_output = result.stdout + result.stderr
-    require("ssl" in combined_output.lower(), "TLS verify failure should report an SSL error")
+    err_text = read_text(err)
+    require("/secure" in err_text, "TLS verify failure should identify the candidate URI")
+    combined_output += err_text
+  require("ssl" in combined_output.lower(), "TLS verify failure should report an SSL error")
   require(not out.exists() or read_text(out) == "", "TLS verify failure should not record the resource as found")
+
+
+def test_socks_proxy_tls_get_contents(exe: Path, tmp: Path, server: FixtureServer) -> None:
+  out_dir = tmp / "proxy-tls-contents"
+  err = tmp / "proxy-tls-contents.err"
+  with SocksProxyServer() as proxy:
+    run_abrade(
+      exe,
+      tmp,
+      [server.authority, "/secure", "--tls", "--proxy", proxy.authority, "--contents", "--out", str(out_dir), "--err", str(err)],
+    )
+  output = out_dir / "_secure"
+  require(output.exists(), "SOCKS proxy should tunnel TLS GET requests")
+  require("SECURE BODY" in read_text(output), "proxied TLS GET should write response body")
 
 
 def main() -> None:
@@ -366,12 +404,15 @@ def main() -> None:
       test_error_log_records_transport_failure(exe, tmp, server)
       test_timeout_records_error(exe, tmp, server)
       test_socks_proxy_head(exe, tmp, server)
+      test_socks_proxy_get_contents(exe, tmp, server)
 
     tls_dir = tmp / "tls"
     tls_dir.mkdir()
     with FixtureServer(tls=True, work_dir=tls_dir, openssl=args.openssl) as server:
       test_tls_no_verify(exe, tmp, server)
+      test_tls_get_contents(exe, tmp, server)
       test_tls_verify_rejects_self_signed(exe, tmp, server)
+      test_socks_proxy_tls_get_contents(exe, tmp, server)
 
 
 if __name__ == "__main__":

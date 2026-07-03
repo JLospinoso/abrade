@@ -12,18 +12,20 @@
 #include "Candidate.h"
 #include "ScraperRuntime.h"
 
+/// Coordinates generation, connection setup, request writing, query execution, and error logging.
 template <typename Generator, typename Query, typename Connection, typename RequestWriter, typename ErrorLog>
 struct Scraper {
-  Scraper(Query&& query, Connection&& connection, RequestWriter&& writer, ErrorLog&& error_log, Controller& controller,
-          boost::asio::io_context& ios)
-    : error_log{std::forward<ErrorLog>(error_log)},
-      controller{controller},
-      ios{ios},
-      query {std::forward<Query>(query)},
-      connection{std::forward<Connection>(connection)},
-      writer{std::forward<RequestWriter>(writer)},
+  Scraper(Query&& query_in, Connection&& connection_in, RequestWriter&& writer_in, ErrorLog&& error_log_in,
+          Controller& controller_in, boost::asio::io_context& io_context)
+    : error_log{std::forward<ErrorLog>(error_log_in)},
+      controller{controller_in},
+      ios{io_context},
+      query {std::forward<Query>(query_in)},
+      connection{std::forward<Connection>(connection_in)},
+      writer{std::forward<RequestWriter>(writer_in)},
       active_coroutines{} { }
 
+  /// Starts the coroutine pool and runs the associated io_context to completion.
   void run(Generator& generator) {
     spawn_coroutine(generator);
     ios.run();
@@ -31,10 +33,10 @@ struct Scraper {
 
 private:
   struct LifetimeCounter {
-    LifetimeCounter(unsigned short& value) : value{value} { value++; }
+    explicit LifetimeCounter(size_t& counter) : value{counter} { value++; }
     ~LifetimeCounter() { value--; }
   private:
-    unsigned short& value;
+    size_t& value;
   };
 
   void spawn_coroutine(Generator& generator) {
@@ -69,5 +71,5 @@ private:
   Query query;
   Connection connection;
   RequestWriter writer;
-  unsigned short active_coroutines;
+  size_t active_coroutines;
 };

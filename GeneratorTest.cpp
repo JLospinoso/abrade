@@ -1,5 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include "Generator.h"
+#include <cmath>
+#include <limits>
+#include <stdexcept>
 
 namespace {
   UriGenerator make(const std::string& pattern) {
@@ -45,11 +48,11 @@ TEST_CASE("UriGenerator") {
 
       SECTION("gives correct range size.") {
         REQUIRE(generator.get_range_size() == 2);
-        next_uri = generator.next();
+        static_cast<void>(generator.next());
         REQUIRE(generator.get_range_size() == 2);
-        next_uri = generator.next();
+        static_cast<void>(generator.next());
         REQUIRE(generator.get_range_size() == 2);
-        next_uri = generator.next();
+        static_cast<void>(generator.next());
         REQUIRE(generator.get_range_size() == 2);
       }
 
@@ -957,15 +960,15 @@ TEST_CASE("UriGenerator") {
 
       SECTION("gives correct range size.") {
         REQUIRE(generator.get_range_size() == 4);
-        next_uri = generator.next();
+        static_cast<void>(generator.next());
         REQUIRE(generator.get_range_size() == 4);
-        next_uri = generator.next();
+        static_cast<void>(generator.next());
         REQUIRE(generator.get_range_size() == 4);
-        next_uri = generator.next();
+        static_cast<void>(generator.next());
         REQUIRE(generator.get_range_size() == 4);
-        next_uri = generator.next();
+        static_cast<void>(generator.next());
         REQUIRE(generator.get_range_size() == 4);
-        next_uri = generator.next();
+        static_cast<void>(generator.next());
         REQUIRE(generator.get_range_size() == 4);
       }
 
@@ -1338,5 +1341,80 @@ TEST_CASE("UriGenerator") {
         REQUIRE(generator.get_range_size() == 2002);
       }
     }
+  }
+
+  SECTION("reports log cardinality as a product across independent ranges") {
+    const auto generator = make("/items/{d}{d}");
+
+    REQUIRE(generator.get_range_size() == 100);
+    REQUIRE(std::abs(generator.get_log_range_size() - std::log(100.0)) < 0.000000000001);
+  }
+
+  SECTION("reports log cardinality for explicit ranges") {
+    const auto generator = make("/items/{1:3}");
+
+    REQUIRE(generator.get_range_size() == 3);
+    REQUIRE(std::abs(generator.get_log_range_size() - std::log(3.0)) < 0.000000000001);
+  }
+
+  SECTION("reports telescoped cardinality as a sum across suffix ranges") {
+    const UriGenerator generator{"/items/{dd}", true, true};
+
+    REQUIRE(generator.get_range_size() == 110);
+    REQUIRE(std::abs(generator.get_log_range_size() - std::log(110.0)) < 0.000000000001);
+  }
+
+  SECTION("iterates telescoped suffix ranges from shortest to longest") {
+    UriGenerator generator{"/items/{dd}", true, true};
+
+    for (auto expected : {
+           "/items/0", "/items/1", "/items/2", "/items/3", "/items/4",
+           "/items/5", "/items/6", "/items/7", "/items/8", "/items/9",
+           "/items/00", "/items/01"
+         }) {
+      const auto next_uri = generator.next();
+      REQUIRE(next_uri);
+      REQUIRE(*next_uri == expected);
+    }
+  }
+
+  SECTION("suppresses leading zeros in implicit ranges unless requested") {
+    UriGenerator generator{"/items/{dd}", false, false};
+
+    for (auto expected : {
+           "/items/0", "/items/1", "/items/2", "/items/3", "/items/4",
+           "/items/5", "/items/6", "/items/7", "/items/8", "/items/9",
+           "/items/10", "/items/11"
+         }) {
+      const auto next_uri = generator.next();
+      REQUIRE(next_uri);
+      REQUIRE(*next_uri == expected);
+    }
+  }
+
+  SECTION("mirrors the previous range for continuation patterns") {
+    UriGenerator generator{"/items/{d}/{}", true, false};
+
+    REQUIRE(generator.get_range_size() == 10);
+    REQUIRE(std::abs(generator.get_log_range_size() - std::log(10.0)) < 0.000000000001);
+    REQUIRE(generator.next() == "/items/0/0");
+    REQUIRE(generator.next() == "/items/1/1");
+    REQUIRE_THROWS(UriGenerator{"{}", true, false});
+  }
+
+  SECTION("throws on exact cardinality overflow while preserving log cardinality") {
+    const UriGenerator generator{"/items/{bbbbbbbbbbbb}", true, false};
+
+    REQUIRE_THROWS_AS(generator.get_range_size(), std::overflow_error);
+    REQUIRE(generator.get_log_range_size() > std::log(static_cast<double>(std::numeric_limits<size_t>::max())));
+  }
+
+  SECTION("throws on explicit exact cardinality overflow while preserving log cardinality") {
+    const auto max_size = std::to_string(std::numeric_limits<size_t>::max());
+    const UriGenerator generator{"/items/{0:" + max_size + "}", true, false};
+
+    REQUIRE_THROWS_AS(generator.get_range_size(), std::overflow_error);
+    REQUIRE(std::isfinite(generator.get_log_range_size()));
+    REQUIRE(generator.get_log_range_size() >= std::log(static_cast<double>(std::numeric_limits<size_t>::max())));
   }
 }

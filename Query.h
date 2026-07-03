@@ -3,8 +3,11 @@
 #include <boost/asio/spawn.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
+#include <iostream>
 #include <string>
+#include <string_view>
 #include <system_error>
+#include <utility>
 #include "Action.h"
 #include "Exception.h"
 #include "Candidate.h"
@@ -13,10 +16,12 @@
 
 //TODO: PostQuery
 
+/// Executes GET requests and forwards successful response bodies to a GetAction.
 struct GetQuery {
-  GetQuery(GetAction action, bool print_found, bool verbose) : print_found{print_found}, verbose{verbose},
-                                                               action{std::move(action)} {}
+  GetQuery(GetAction response_action, bool should_print_found, bool verbose_output) : print_found{should_print_found}, verbose{verbose_output},
+                                                                                     action{std::move(response_action)} {}
 
+  /// Reads the full response, processes it, and prints status according to output options.
   template <typename Stream>
   void execute(Stream& stream, const std::string_view& description, const boost::asio::yield_context& yield) {
     boost::beast::flat_buffer buffer;
@@ -34,17 +39,19 @@ struct GetQuery {
   }
 
   template <typename Request>
-  void set_method(Request& request) const { request.method(boost::beast::http::verb::get); }
+  static void set_method(Request& request) { request.method(boost::beast::http::verb::get); }
 
 private:
   bool print_found, verbose;
   GetAction action;
 };
 
+/// Executes HEAD requests and forwards successful candidates to a HeadAction.
 struct HeadQuery {
-  HeadQuery(HeadAction action, bool print_found, bool verbose) : print_found{print_found}, verbose{verbose},
-                                                                 action {std::move(action)} { }
+  HeadQuery(HeadAction response_action, bool should_print_found, bool verbose_output) : print_found{should_print_found}, verbose{verbose_output},
+                                                                                       action {std::move(response_action)} { }
 
+  /// Reads response headers, processes status, and prints status according to output options.
   template <typename Stream>
   void execute(Stream& stream, const std::string_view& description, const boost::asio::yield_context& yield) {
     boost::beast::flat_buffer buffer;
@@ -63,7 +70,7 @@ struct HeadQuery {
   }
 
   template <typename Request>
-  void set_method(Request& request) const { request.method(boost::beast::http::verb::head); }
+  static void set_method(Request& request) { request.method(boost::beast::http::verb::head); }
 
 private:
   bool print_found, verbose;

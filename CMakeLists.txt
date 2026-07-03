@@ -10,6 +10,9 @@ if(POLICY CMP0167)
 endif()
 
 option(ABRADE_ENABLE_SANITIZERS "Enable address and undefined behavior sanitizers" OFF)
+option(ABRADE_ENABLE_WARNINGS "Enable strict compiler warnings for Abrade targets" ON)
+option(ABRADE_WARNINGS_AS_ERRORS "Treat Abrade compiler warnings as errors" ON)
+option(ABRADE_ENABLE_COVERAGE "Enable compiler coverage instrumentation for Abrade targets" OFF)
 
 if(MSVC AND VCPKG_TARGET_TRIPLET MATCHES "static")
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -48,6 +51,39 @@ function(abrade_target_defaults target)
   target_link_options(${target} PRIVATE
     $<$<AND:$<BOOL:${ABRADE_ENABLE_SANITIZERS}>,$<NOT:$<CXX_COMPILER_ID:MSVC>>>:-fsanitize=address,undefined>
   )
+  if(ABRADE_ENABLE_WARNINGS)
+    target_compile_options(${target} PRIVATE
+      $<$<CXX_COMPILER_ID:MSVC>:/W4>
+      $<$<CXX_COMPILER_ID:MSVC>:/permissive->
+      $<$<BOOL:${ABRADE_WARNINGS_AS_ERRORS}>:$<$<CXX_COMPILER_ID:MSVC>:/WX>>
+      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall>
+      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wextra>
+      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wpedantic>
+      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wconversion>
+      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wsign-conversion>
+      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wshadow>
+      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wnon-virtual-dtor>
+      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wold-style-cast>
+      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wcast-align>
+      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Woverloaded-virtual>
+      $<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wnull-dereference>
+      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wdouble-promotion>
+      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wformat=2>
+      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wimplicit-fallthrough>
+      $<$<BOOL:${ABRADE_WARNINGS_AS_ERRORS}>:$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Werror>>
+    )
+  endif()
+  if(ABRADE_ENABLE_COVERAGE)
+    target_compile_options(${target} PRIVATE
+      $<$<CXX_COMPILER_ID:AppleClang,Clang>:-fprofile-instr-generate>
+      $<$<CXX_COMPILER_ID:AppleClang,Clang>:-fcoverage-mapping>
+      $<$<CXX_COMPILER_ID:GNU>:--coverage>
+    )
+    target_link_options(${target} PRIVATE
+      $<$<CXX_COMPILER_ID:AppleClang,Clang>:-fprofile-instr-generate>
+      $<$<CXX_COMPILER_ID:GNU>:--coverage>
+    )
+  endif()
 endfunction()
 
 add_library(abradelib STATIC
@@ -102,6 +138,8 @@ if(BUILD_TESTING)
   include(Catch)
 
   add_executable(abrade_test
+    ActionTest.cpp
+    ControllerTest.cpp
     EndpointTest.cpp
     GeneratorTest.cpp
     OptionsTest.cpp
@@ -129,4 +167,20 @@ if(BUILD_TESTING)
     COMMAND ${ABRADE_SCRAPER_INTEGRATION_COMMAND}
   )
   set_tests_properties(ScraperIntegration PROPERTIES TIMEOUT 90)
+endif()
+
+find_program(CPPCHECK_EXECUTABLE NAMES cppcheck)
+if(CPPCHECK_EXECUTABLE)
+  add_custom_target(abrade_cppcheck
+    COMMAND "${CPPCHECK_EXECUTABLE}"
+      --project=${CMAKE_BINARY_DIR}/compile_commands.json
+      --enable=warning,performance,portability,style
+      --std=c++23
+      --inline-suppr
+      --suppress=missingIncludeSystem
+      --error-exitcode=2
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    COMMENT "Running cppcheck static analysis"
+    VERBATIM
+  )
 endif()

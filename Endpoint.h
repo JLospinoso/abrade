@@ -6,13 +6,15 @@
 #include <string>
 #include <string_view>
 
+/// Parsed host authority with the host, service string, and numeric TCP port.
 struct HostEndpoint {
   std::string authority;
   std::string host;
   std::string service;
-  std::uint16_t port;
+  std::uint16_t port{};
 };
 
+/// Parses a TCP port from decimal text and rejects empty, partial, or out-of-range values.
 inline std::uint16_t parse_tcp_port(std::string_view text) {
   if (text.empty()) {
     throw std::runtime_error{"Host port is empty."};
@@ -27,6 +29,7 @@ inline std::uint16_t parse_tcp_port(std::string_view text) {
   return static_cast<std::uint16_t>(parsed);
 }
 
+/// Parses host authorities such as example.com, example.com:8443, ::1, or [::1]:8443.
 inline HostEndpoint parse_host_endpoint(std::string_view authority,
                                         std::string_view default_service,
                                         std::uint16_t default_port) {

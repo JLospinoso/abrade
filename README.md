@@ -144,6 +144,31 @@ printf '/a\n/b\n' | ./build/ci/abrade example.com --stdin --test
 
 `ctest --preset ci` includes loopback integration tests for the scraper runtime.
 
+For local quality work, use the stricter warning/debug preset:
+
+```
+cmake --preset quality
+cmake --build --preset quality
+ctest --preset quality
+```
+
+Compiler warnings are enabled by default and treated as errors. If `cppcheck`
+is installed, CMake also exposes a compile-database backed static analysis
+target:
+
+```
+cmake --build --preset quality --target abrade_cppcheck
+```
+
+Coverage instrumentation is available on non-Windows hosts:
+
+```
+cmake --preset coverage
+cmake --build --preset coverage
+ctest --preset coverage
+bash tools/quality/llvm-coverage-report.sh
+```
+
 On Windows PowerShell, set `VCPKG_ROOT` with `$env:VCPKG_ROOT = "C:\path\to\vcpkg"`
 and use `.\build\ci\abrade.exe` for the smoke commands.
 

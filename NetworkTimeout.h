@@ -14,6 +14,7 @@
 #include <utility>
 #include "Exception.h"
 
+/// Returns the per-operation network timeout, optionally overridden by ABRADE_NETWORK_TIMEOUT_MS.
 inline std::chrono::milliseconds network_operation_timeout() {
   static const auto timeout = [] {
     constexpr auto default_timeout = std::chrono::milliseconds{30000};
@@ -34,6 +35,7 @@ inline std::chrono::milliseconds network_operation_timeout() {
   return timeout;
 }
 
+/// Awaits a void asynchronous operation and cancels it if the network timeout expires.
 template <typename Executor, typename Cancel, typename Start>
 void await_void_with_timeout(Executor executor,
                              Cancel&& cancel,
@@ -65,6 +67,7 @@ void await_void_with_timeout(Executor executor,
   }
 }
 
+/// Awaits an asynchronous operation with a result and cancels it if the network timeout expires.
 template <typename Result, typename Executor, typename Cancel, typename Start>
 Result await_result_with_timeout(Executor executor,
                                  Cancel&& cancel,
@@ -98,6 +101,7 @@ Result await_result_with_timeout(Executor executor,
   return result;
 }
 
+/// Applies the standard timeout wrapper to stream-based asynchronous operations.
 template <typename Stream, typename Start>
 void await_stream_with_timeout(Stream& stream,
                                std::string_view action,
@@ -116,6 +120,7 @@ void await_stream_with_timeout(Stream& stream,
   );
 }
 
+/// Applies the standard timeout wrapper to resolver asynchronous operations.
 template <typename Result, typename Resolver, typename Start>
 Result await_resolver_with_timeout(Resolver& resolver,
                                    std::string_view action,
