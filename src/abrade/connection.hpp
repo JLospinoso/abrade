@@ -34,9 +34,16 @@ void configure_tls_peer(Stream& stream, const HostEndpoint& endpoint, bool verif
   if (!is_dns_name(endpoint.host)) {
     return;
   }
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#endif
   if (SSL_set_tlsext_host_name(stream.native_handle(), endpoint.host.c_str()) == 0) {
     throw AbradeException{"ssl sni"};
   }
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
   if (verify_peer) {
     stream.set_verify_callback(boost::asio::ssl::host_name_verification(endpoint.host));
   }
