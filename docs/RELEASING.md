@@ -25,6 +25,14 @@ Use the `Release` workflow manually before pushing a real release tag:
 The rehearsal uses hosted Linux, macOS, and Windows runners. Ordinary PRs remain
 on the bounded Marvin/fork-safe CI path.
 
+Before rehearsing, confirm the user-facing docs match the release:
+
+- README install and quick-start commands are current.
+- `docs/index.md`, `docs/usage.md`, and `docs/patterns.md` match CLI behavior.
+- `docs/building.md` and this release guide match the workflow files.
+- Any historical notes stay in `docs/history.md`, not in the current install
+  path.
+
 ## Publish A Release
 
 After the rehearsal passes and `master` is green:

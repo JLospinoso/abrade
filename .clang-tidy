@@ -1,0 +1,46 @@
+Checks: >
+  -*,
+  bugprone-*,
+  clang-analyzer-*,
+  concurrency-*,
+  cppcoreguidelines-*,
+  misc-*,
+  modernize-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-exception-escape,
+  -cppcoreguidelines-avoid-c-arrays,
+  -cppcoreguidelines-avoid-const-or-ref-data-members,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-macro-usage,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -cppcoreguidelines-owning-memory,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-pro-type-union-access,
+  -cppcoreguidelines-pro-type-vararg,
+  -misc-include-cleaner,
+  -misc-const-correctness,
+  -misc-non-private-member-variables-in-classes,
+  -modernize-use-std-format,
+  -modernize-use-std-print,
+  -modernize-use-trailing-return-type,
+  -performance-no-automatic-move,
+  -portability-avoid-pragma-once,
+  -readability-avoid-const-params-in-decls,
+  -readability-function-cognitive-complexity,
+  -readability-identifier-length,
+  -readability-magic-numbers,
+  -readability-qualified-auto,
+  -readability-uppercase-literal-suffix
+WarningsAsErrors: '*'
+HeaderFilterRegex: '^(src|tests)/'
+FormatStyle: file
+CheckOptions:
+  readability-else-after-return.WarnOnConditionVariables: 'false'
+  readability-function-size.LineThreshold: '120'
+  readability-function-size.StatementThreshold: '80'
+  readability-simplify-boolean-expr.ChainedConditionalReturn: 'true'

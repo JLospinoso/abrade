@@ -69,6 +69,16 @@ jobs:
       - name: Build
         run: cmake --build --preset ci --parallel
 
+      - name: Static analysis
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v cppcheck >/dev/null 2>&1; then
+            cmake --build --preset ci --target abrade_cppcheck
+          else
+            echo "::notice::cppcheck is not installed on this runner; skipping optional static analysis"
+          fi
+
       - name: Test
         run: ctest --preset ci
 
@@ -130,6 +140,16 @@ jobs:
 
       - name: Build
         run: cmake --build --preset ci --parallel
+
+      - name: Static analysis
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v cppcheck >/dev/null 2>&1; then
+            cmake --build --preset ci --target abrade_cppcheck
+          else
+            echo "::notice::cppcheck is not installed on this runner; skipping optional static analysis"
+          fi
 
       - name: Test
         run: ctest --preset ci
