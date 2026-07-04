@@ -9,10 +9,11 @@ if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
 endif()
 
-option(ABRADE_ENABLE_SANITIZERS "Enable address and undefined behavior sanitizers" OFF)
-option(ABRADE_ENABLE_WARNINGS "Enable strict compiler warnings for Abrade targets" ON)
-option(ABRADE_WARNINGS_AS_ERRORS "Treat Abrade compiler warnings as errors" ON)
-option(ABRADE_ENABLE_COVERAGE "Enable compiler coverage instrumentation for Abrade targets" OFF)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+include(AbradeCompilerOptions)
+include(AbradeStaticAnalysis)
+include(AbradeTesting)
 
 if(MSVC AND VCPKG_TARGET_TRIPLET MATCHES "static")
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -34,80 +35,44 @@ find_package(Boost REQUIRED COMPONENTS
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
 
-function(abrade_target_defaults target)
-  target_compile_features(${target} PUBLIC cxx_std_23)
-  set_target_properties(${target} PROPERTIES
-    CXX_EXTENSIONS OFF
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
-  )
-  target_compile_definitions(${target} PUBLIC
-    $<$<PLATFORM_ID:Windows>:_WIN32_WINNT=0x0601>
-  )
-  target_compile_options(${target} PRIVATE
-    $<$<CXX_COMPILER_ID:MSVC>:/bigobj>
-    $<$<AND:$<BOOL:${ABRADE_ENABLE_SANITIZERS}>,$<NOT:$<CXX_COMPILER_ID:MSVC>>>:-fsanitize=address,undefined>
-    $<$<AND:$<BOOL:${ABRADE_ENABLE_SANITIZERS}>,$<NOT:$<CXX_COMPILER_ID:MSVC>>>:-fno-omit-frame-pointer>
-  )
-  target_link_options(${target} PRIVATE
-    $<$<AND:$<BOOL:${ABRADE_ENABLE_SANITIZERS}>,$<NOT:$<CXX_COMPILER_ID:MSVC>>>:-fsanitize=address,undefined>
-  )
-  if(ABRADE_ENABLE_WARNINGS)
-    target_compile_options(${target} PRIVATE
-      $<$<CXX_COMPILER_ID:MSVC>:/W4>
-      $<$<CXX_COMPILER_ID:MSVC>:/permissive->
-      $<$<BOOL:${ABRADE_WARNINGS_AS_ERRORS}>:$<$<CXX_COMPILER_ID:MSVC>:/WX>>
-      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall>
-      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wextra>
-      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wpedantic>
-      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wconversion>
-      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wsign-conversion>
-      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wshadow>
-      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wnon-virtual-dtor>
-      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wold-style-cast>
-      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wcast-align>
-      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Woverloaded-virtual>
-      $<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wnull-dereference>
-      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wdouble-promotion>
-      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wformat=2>
-      $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wimplicit-fallthrough>
-      $<$<BOOL:${ABRADE_WARNINGS_AS_ERRORS}>:$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Werror>>
-    )
-  endif()
-  if(ABRADE_ENABLE_COVERAGE)
-    target_compile_options(${target} PRIVATE
-      $<$<CXX_COMPILER_ID:AppleClang,Clang>:-fprofile-instr-generate>
-      $<$<CXX_COMPILER_ID:AppleClang,Clang>:-fcoverage-mapping>
-      $<$<CXX_COMPILER_ID:GNU>:--coverage>
-    )
-    target_link_options(${target} PRIVATE
-      $<$<CXX_COMPILER_ID:AppleClang,Clang>:-fprofile-instr-generate>
-      $<$<CXX_COMPILER_ID:GNU>:--coverage>
-    )
-  endif()
-endfunction()
-
-add_library(abradelib STATIC
-  Action.h
-  Candidate.h
-  Connection.h
-  Controller.cpp
-  Controller.h
-  Endpoint.h
-  Exception.cpp
-  Exception.h
-  Generator.cpp
-  Generator.h
-  HttpStatus.h
-  NetworkTimeout.h
-  Options.cpp
-  Options.h
-  Query.h
-  Scraper.h
-  ScraperRuntime.h
-  Writer.h
+set(ABRADE_CORE_HEADERS
+  src/abrade/action.hpp
+  src/abrade/candidate.hpp
+  src/abrade/connection.hpp
+  src/abrade/content_filter.hpp
+  src/abrade/controller.hpp
+  src/abrade/endpoint.hpp
+  src/abrade/exception.hpp
+  src/abrade/generator.hpp
+  src/abrade/http_status.hpp
+  src/abrade/network_timeout.hpp
+  src/abrade/options.hpp
+  src/abrade/query.hpp
+  src/abrade/redirect_policy.hpp
+  src/abrade/run_stats.hpp
+  src/abrade/scraper.hpp
+  src/abrade/scraper_runtime.hpp
+  src/abrade/writer.hpp
 )
-abrade_target_defaults(abradelib)
-target_link_libraries(abradelib
+
+set(ABRADE_CORE_SOURCES
+  src/abrade/controller.cpp
+  src/abrade/exception.cpp
+  src/abrade/generator.cpp
+  src/abrade/options.cpp
+)
+
+add_library(abrade_core STATIC)
+target_sources(abrade_core
+  PRIVATE
+    ${ABRADE_CORE_SOURCES}
+  PUBLIC
+    FILE_SET HEADERS
+      BASE_DIRS src
+      FILES ${ABRADE_CORE_HEADERS}
+)
+abrade_target_defaults(abrade_core)
+target_link_libraries(abrade_core
   PUBLIC
     Boost::asio
     Boost::beast
@@ -125,62 +90,40 @@ target_link_libraries(abradelib
     Threads::Threads
 )
 
-add_executable(abrade main.cpp)
-abrade_target_defaults(abrade)
-target_link_libraries(abrade PRIVATE abradelib)
+add_executable(abrade_cli src/cli/main.cpp)
+set_target_properties(abrade_cli PROPERTIES OUTPUT_NAME abrade)
+abrade_target_defaults(abrade_cli)
+target_link_libraries(abrade_cli PRIVATE abrade_core)
 
-install(TARGETS abrade RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+install(TARGETS abrade_cli RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
 install(FILES LICENSE README.md DESTINATION "${CMAKE_INSTALL_DOCDIR}")
 
+set(ABRADE_TIDY_SOURCES
+  ${ABRADE_CORE_SOURCES}
+  src/cli/main.cpp
+)
+
+set(ABRADE_FORMAT_SOURCES
+  ${ABRADE_CORE_HEADERS}
+  ${ABRADE_CORE_SOURCES}
+  src/cli/main.cpp
+)
+
 if(BUILD_TESTING)
-  find_package(Catch2 3 REQUIRED)
-  list(APPEND CMAKE_MODULE_PATH "${Catch2_DIR}")
-  include(Catch)
+  set(ABRADE_UNIT_TEST_SOURCES
+    tests/unit/action_test.cpp
+    tests/unit/controller_test.cpp
+    tests/unit/endpoint_test.cpp
+    tests/unit/generator_test.cpp
+    tests/unit/options_test.cpp
+    tests/unit/runtime_test.cpp
+  )
 
-  add_executable(abrade_test
-    ActionTest.cpp
-    ControllerTest.cpp
-    EndpointTest.cpp
-    GeneratorTest.cpp
-    OptionsTest.cpp
-    RuntimeTest.cpp
-  )
-  abrade_target_defaults(abrade_test)
-  target_link_libraries(abrade_test PRIVATE abradelib Catch2::Catch2WithMain)
-  catch_discover_tests(abrade_test)
+  abrade_add_unit_tests(abrade_unit_tests "${ABRADE_UNIT_TEST_SOURCES}")
+  abrade_add_scraper_integration_test(abrade_cli)
 
-  find_package(Python3 REQUIRED COMPONENTS Interpreter)
-  find_program(ABRADE_OPENSSL_EXECUTABLE
-    NAMES openssl openssl.exe
-    HINTS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/tools/openssl"
-  )
-  set(ABRADE_SCRAPER_INTEGRATION_COMMAND
-    "${Python3_EXECUTABLE}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/tests/scraper_integration.py"
-    "$<TARGET_FILE:abrade>"
-  )
-  if(ABRADE_OPENSSL_EXECUTABLE)
-    list(APPEND ABRADE_SCRAPER_INTEGRATION_COMMAND "--openssl" "${ABRADE_OPENSSL_EXECUTABLE}")
-  endif()
-  add_test(
-    NAME ScraperIntegration
-    COMMAND ${ABRADE_SCRAPER_INTEGRATION_COMMAND}
-  )
-  set_tests_properties(ScraperIntegration PROPERTIES TIMEOUT 90)
+  list(APPEND ABRADE_TIDY_SOURCES ${ABRADE_UNIT_TEST_SOURCES})
+  list(APPEND ABRADE_FORMAT_SOURCES ${ABRADE_UNIT_TEST_SOURCES})
 endif()
 
-find_program(CPPCHECK_EXECUTABLE NAMES cppcheck)
-if(CPPCHECK_EXECUTABLE)
-  add_custom_target(abrade_cppcheck
-    COMMAND "${CPPCHECK_EXECUTABLE}"
-      --project=${CMAKE_BINARY_DIR}/compile_commands.json
-      --enable=warning,performance,portability,style
-      --std=c++23
-      --inline-suppr
-      --suppress=missingIncludeSystem
-      --error-exitcode=2
-    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-    COMMENT "Running cppcheck static analysis"
-    VERBATIM
-  )
-endif()
+abrade_add_static_analysis_targets("${ABRADE_TIDY_SOURCES}" "${ABRADE_FORMAT_SOURCES}")

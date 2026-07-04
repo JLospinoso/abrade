@@ -97,6 +97,38 @@
       "configurePreset": "quality"
     },
     {
+      "name": "clang-tidy",
+      "displayName": "clang-tidy analysis",
+      "configurePreset": "quality",
+      "targets": [
+        "abrade_clang_tidy"
+      ]
+    },
+    {
+      "name": "format",
+      "displayName": "clang-format rewrite",
+      "configurePreset": "quality",
+      "targets": [
+        "abrade_format"
+      ]
+    },
+    {
+      "name": "format-check",
+      "displayName": "clang-format check",
+      "configurePreset": "quality",
+      "targets": [
+        "abrade_format_check"
+      ]
+    },
+    {
+      "name": "cppcheck",
+      "displayName": "cppcheck analysis",
+      "configurePreset": "quality",
+      "targets": [
+        "abrade_cppcheck"
+      ]
+    },
+    {
       "name": "coverage",
       "configurePreset": "coverage"
     },
