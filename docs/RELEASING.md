@@ -22,8 +22,8 @@ Use the `Release` workflow manually before pushing a real release tag:
 5. Confirm the workflow produces `release-assets-TAG`.
 6. Download the artifact and verify `SHA256SUMS`.
 
-The rehearsal uses hosted Linux, macOS, and Windows runners. Ordinary PRs remain
-on the bounded Marvin/fork-safe CI path.
+The rehearsal uses hosted Linux, macOS, and Windows runners. Ordinary PRs use
+the hosted Ubuntu `Build (GitHub)` check.
 
 Before rehearsing, confirm the user-facing docs match the release:
 

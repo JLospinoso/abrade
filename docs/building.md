@@ -40,7 +40,7 @@ The executable is written to `build/dev/abrade` on Unix-like hosts and
 ## CI-Equivalent Build
 
 Use the `ci` preset when you want the same release-mode build used by the
-required Marvin check:
+required hosted GitHub Actions check:
 
 ```sh
 cmake --preset ci
@@ -140,10 +140,9 @@ The canonical targets are:
 
 ## GitHub Actions
 
-The required protected check is named `Build (Marvin)`. It runs on the temporary
-Marvin self-hosted runner for trusted pushes and same-repository pull requests.
-Fork pull requests use the fork-safe hosted Ubuntu fallback. A manual hosted
-validation workflow matrix is available through `workflow_dispatch` for
-selective Ubuntu, macOS, and Windows validation.
+The required protected check is named `Build (GitHub)`. It runs on GitHub's
+hosted Ubuntu runner for pushes and pull requests. A manual hosted validation
+workflow matrix is available through `workflow_dispatch` for selective Ubuntu,
+macOS, and Windows validation.
 
 The release workflow is tag-driven and documented in [RELEASING.md](RELEASING.md).
