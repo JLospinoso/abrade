@@ -16,6 +16,23 @@
 
 namespace abrade {
 
+namespace detail {
+inline std::string environment_variable(const char* name) {
+#if defined(_MSC_VER)
+  char* value{};
+  std::size_t value_size{};
+  if (::_dupenv_s(&value, &value_size, name) != 0 || value == nullptr) {
+    return {};
+  }
+  std::unique_ptr<char, decltype(&std::free)> owned_value{value, &std::free};
+  return value_size <= 1U ? std::string{} : std::string{owned_value.get()};
+#else
+  const auto* value = std::getenv(name);
+  return value == nullptr ? std::string{} : std::string{value};
+#endif
+}
+} // namespace detail
+
 /// Returns the per-operation network timeout.
 ///
 /// `ABRADE_NETWORK_TIMEOUT_MS` may override the 30 second default. Invalid,
@@ -24,13 +41,13 @@ namespace abrade {
 inline std::chrono::milliseconds network_operation_timeout() {
   static const auto timeout = [] {
     constexpr auto default_timeout = std::chrono::milliseconds{30000};
-    const auto* raw_timeout = std::getenv("ABRADE_NETWORK_TIMEOUT_MS");
-    if (raw_timeout == nullptr || *raw_timeout == '\0') {
+    const auto raw_timeout = detail::environment_variable("ABRADE_NETWORK_TIMEOUT_MS");
+    if (raw_timeout.empty()) {
       return default_timeout;
     }
 
     char* end{};
-    const auto parsed = std::strtoull(raw_timeout, &end, 10);
+    const auto parsed = std::strtoull(raw_timeout.c_str(), &end, 10);
     if (*end != '\0' || parsed == 0 ||
         parsed > static_cast<unsigned long long>(std::numeric_limits<int>::max())) {
       return default_timeout;
